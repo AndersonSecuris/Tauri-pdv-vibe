@@ -16,7 +16,7 @@ pub struct PrintResponse {
 
 // Thermal Printer ESC/POS raw bytes transmission handler
 #[tauri::command]
-pub fn print_escpos(payload: PrintPayload) -> Result<PrintResponse, String> {
+fn print_escpos(payload: PrintPayload) -> Result<PrintResponse, String> {
     println!(
         "Enviando {} bytes para impressora {} via {}",
         payload.bytes.len(),
@@ -40,7 +40,7 @@ pub fn print_escpos(payload: PrintPayload) -> Result<PrintResponse, String> {
 
 // Test pulse for cash drawer RJ12 pin
 #[tauri::command]
-pub fn kick_cash_drawer() -> Result<PrintResponse, String> {
+fn kick_cash_drawer() -> Result<PrintResponse, String> {
     // Standard ESC/POS pulse: ESC p 0 25 250
     Ok(PrintResponse {
         success: true,

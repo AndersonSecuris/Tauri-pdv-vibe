@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "CellMaster - PDV & Ordem de Serviço",
         "width": 1366,
         "height": 840,
