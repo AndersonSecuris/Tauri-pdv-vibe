@@ -1,0 +1,58 @@
+name: Compilar para Windows (Tauri)
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Configurar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache do Cargo & Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Instalar Dependências do Frontend
+        run: npm ci
+
+      - name: Compilar Frontend Vite
+        run: npm run build
+
+      - name: Compilar Aplicativo Windows via Tauri CLI
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'CellMaster PDV v__VERSION__'
+          releaseBody: 'Nova versão do CellMaster PDV & Ordem de Serviço compilada para Windows (x64).'
+          releaseDraft: false
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc
+
+      - name: Salvar Artefatos do Instalador (.exe e .msi)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CellMaster-Windows-Installer
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi

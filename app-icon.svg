@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  
+  <!-- Smartphone frame -->
+  <rect x="146" y="80" width="220" height="352" rx="36" fill="none" stroke="#f8fafc" stroke-width="20"/>
+  <!-- Screen area -->
+  <rect x="166" y="120" width="180" height="260" rx="16" fill="#1e293b"/>
+  <!-- Notch/Speaker -->
+  <rect x="226" y="98" width="60" height="8" rx="4" fill="#94a3b8"/>
+  <!-- Home indicator -->
+  <rect x="216" y="402" width="80" height="8" rx="4" fill="#94a3b8"/>
+  
+  <!-- Wrench Tool / Precision Screwdriver across screen -->
+  <path d="M210 210 L300 300 M280 190 L320 230" stroke="url(#accent)" stroke-width="24" stroke-linecap="round"/>
+  <!-- Thermal receipt paper curl -->
+  <path d="M216 160 L296 160 M216 190 L270 190 M216 220 L280 220" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <!-- Checkmark -->
+  <circle cx="330" cy="330" r="32" fill="#10b981"/>
+  <path d="M318 330 L326 338 L344 320" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
