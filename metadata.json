@@ -1,0 +1,6 @@
+{
+  "name": "CellMaster PDV & Ordem de Serviço",
+  "description": "Sistema completo para assistência técnica de celulares com PDV, Ordem de Serviço ágil, rastreamento em tempo real, histórico de clientes e suporte a impressoras térmicas via Tauri ESC/POS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

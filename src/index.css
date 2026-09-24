@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Custom thermal receipt styling */
+.thermal-paper {
+  background: #fbfbf8;
+  color: #111111;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.thermal-paper::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: radial-gradient(circle, transparent, transparent 50%, #fbfbf8 50%, #fbfbf8 100%);
+  background-size: 12px 12px;
+  transform: rotate(180deg);
+}
+
+/* Print mode optimization for thermal printers */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  /* Hide all app UI during print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show only printable receipt */
+  .printable-receipt-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    font-family: monospace !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .printable-receipt-area.width-58mm {
+    max-width: 58mm !important;
+    font-size: 9.5px !important;
+  }
+}
