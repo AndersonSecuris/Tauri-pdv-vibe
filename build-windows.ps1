@@ -17,7 +17,7 @@ if (-not (Get-Command "cargo" -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "[1/3] Instalando dependências e compilando frontend Vite..." -ForegroundColor Green
-npm install
+npm install --legacy-peer-deps
 npm run build
 
 if ($LASTEXITCODE -ne 0) {

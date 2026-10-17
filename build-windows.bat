@@ -24,11 +24,15 @@ echo [OK] Node.js e Rust encontrados com sucesso!
 echo.
 
 echo [2/4] Instalando dependências npm...
-call npm install
+call npm install --legacy-peer-deps
 if %errorlevel% neq 0 (
-    echo [ERRO] Falha ao instalar dependências npm.
-    pause
-    exit /b %errorlevel%
+    echo [AVISO] Tentando instalação com flag alternativa...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo [ERRO] Falha ao instalar dependências npm.
+        pause
+        exit /b %errorlevel%
+    )
 )
 
 echo.

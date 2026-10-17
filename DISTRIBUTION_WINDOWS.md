@@ -25,7 +25,7 @@ Se você estiver em uma máquina com Windows:
 
 3. **Ou executar manualmente via terminal**:
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    npm run build
    npx tauri build
    ```
