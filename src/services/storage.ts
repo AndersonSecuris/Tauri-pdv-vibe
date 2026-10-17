@@ -1,4 +1,15 @@
-import { OrdemDeServico, Cliente, ItemPDV, VendaPDV, CaixaSessao, ConfiguracaoImpressora } from '../types';
+import {
+  OrdemDeServico,
+  Cliente,
+  ItemPDV,
+  VendaPDV,
+  CaixaSessao,
+  ConfiguracaoImpressora,
+  OSConfigOptions,
+  PrintOSOptions,
+  PrintSaleOptions,
+  PrintTechOSOptions,
+} from '../types';
 
 const STORAGE_KEYS = {
   ORDERS: 'cellmaster_orders_v1',
@@ -7,6 +18,7 @@ const STORAGE_KEYS = {
   SALES: 'cellmaster_sales_v1',
   CAIXA: 'cellmaster_caixa_v1',
   PRINTER: 'cellmaster_printer_config_v1',
+  OS_CONFIG: 'cellmaster_os_config_v1',
 };
 
 export const INITIAL_CLIENTS: Cliente[] = [
@@ -602,6 +614,79 @@ export const INITIAL_ORDERS: OrdemDeServico[] = [
   },
 ];
 
+export const DEFAULT_OS_PRINT_OPTIONS: PrintOSOptions = {
+  showStoreHeader: true,
+  showStoreCnpj: true,
+  showStorePhone: true,
+  showStoreAddress: true,
+  showStoreInstagram: true,
+  showOSNumber: true,
+  showTrackingCode: true,
+  showEntryDate: true,
+  showExpectedDate: true,
+  showStatus: true,
+  showTechnician: true,
+  showClientName: true,
+  showClientPhone: true,
+  showClientCpf: true,
+  showDeviceModel: true,
+  showDeviceColor: true,
+  showDeviceImei: true,
+  showDevicePassword: true,
+  showIcloudStatus: true,
+  showReportedDefect: true,
+  showChecklist: true,
+  showAccessories: true,
+  showBudgetDetails: true,
+  showTotalAmount: true,
+  showPaymentStatus: true,
+  showTrackingInfo: true,
+  showWarrantyTerms: true,
+  showSignatureLine: true,
+  showCustomFooter: true,
+};
+
+export const DEFAULT_SALE_PRINT_OPTIONS: PrintSaleOptions = {
+  showStoreHeader: true,
+  showStoreCnpj: true,
+  showStorePhone: true,
+  showStoreAddress: true,
+  showStoreInstagram: true,
+  showSaleCode: true,
+  showDate: true,
+  showCashierName: true,
+  showClientName: true,
+  showItemsList: true,
+  showSubtotal: true,
+  showDiscount: true,
+  showTotal: true,
+  showPaymentMethod: true,
+  showCashReceivedAndChange: true,
+  showWarrantyMessage: true,
+  showCustomFooter: true,
+};
+
+export const DEFAULT_TECH_OS_PRINT_OPTIONS: PrintTechOSOptions = {
+  showStoreHeader: true,
+  showOSNumber: true,
+  showTrackingCode: true,
+  showDates: true,
+  showTechnician: true,
+  showClientName: true,
+  showClientPhone: true,
+  showDeviceModel: true,
+  showDeviceColor: true,
+  showDeviceImei: true,
+  showDevicePassword: true,
+  showIcloudStatus: true,
+  showReportedDefect: true,
+  showChecklist: true,
+  showAccessories: true,
+  showDiagnosisSpace: true,
+  showBudget: true,
+  showCustomFooter: true,
+};
+
 export const INITIAL_PRINTER_CONFIG: ConfiguracaoImpressora = {
   driver: 'ESC_POS_TAURI',
   paperWidth: '80mm',
@@ -620,6 +705,9 @@ export const INITIAL_PRINTER_CONFIG: ConfiguracaoImpressora = {
   storeInstagram: '@cellmaster.tecnica',
   customHeaderNote: 'Especialistas em Apple, Samsung, Xiaomi e Motorola',
   customFooterNote: 'Consulte o status do seu conserto em tempo real!',
+  osPrintOptions: DEFAULT_OS_PRINT_OPTIONS,
+  salePrintOptions: DEFAULT_SALE_PRINT_OPTIONS,
+  techOSPrintOptions: DEFAULT_TECH_OS_PRINT_OPTIONS,
 };
 
 export const INITIAL_CAIXA: CaixaSessao = {
@@ -698,7 +786,24 @@ export const saveStoredProducts = (products: ItemPDV[]) => {
 export const getStoredPrinterConfig = (): ConfiguracaoImpressora => {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PRINTER);
-    return raw ? JSON.parse(raw) : INITIAL_PRINTER_CONFIG;
+    if (!raw) return INITIAL_PRINTER_CONFIG;
+    const parsed = JSON.parse(raw);
+    return {
+      ...INITIAL_PRINTER_CONFIG,
+      ...parsed,
+      osPrintOptions: {
+        ...DEFAULT_OS_PRINT_OPTIONS,
+        ...(parsed.osPrintOptions || {}),
+      },
+      salePrintOptions: {
+        ...DEFAULT_SALE_PRINT_OPTIONS,
+        ...(parsed.salePrintOptions || {}),
+      },
+      techOSPrintOptions: {
+        ...DEFAULT_TECH_OS_PRINT_OPTIONS,
+        ...(parsed.techOSPrintOptions || {}),
+      },
+    };
   } catch {
     return INITIAL_PRINTER_CONFIG;
   }
@@ -720,3 +825,170 @@ export const getStoredCaixa = (): CaixaSessao => {
 export const saveStoredCaixa = (caixa: CaixaSessao) => {
   localStorage.setItem(STORAGE_KEYS.CAIXA, JSON.stringify(caixa));
 };
+
+export const DEFAULT_OS_CONFIG: OSConfigOptions = {
+  brands: [
+    { id: 'brand-apple', name: 'Apple', icon: 'Smartphone' },
+    { id: 'brand-samsung', name: 'Samsung', icon: 'Smartphone' },
+    { id: 'brand-motorola', name: 'Motorola', icon: 'Radio' },
+    { id: 'brand-xiaomi', name: 'Xiaomi', icon: 'Flame' },
+    { id: 'brand-realme', name: 'Realme', icon: 'Sparkles' },
+    { id: 'brand-lg', name: 'LG', icon: 'Tv' },
+    { id: 'brand-outro', name: 'Outro', icon: 'Cpu' },
+  ],
+  modelsByBrand: {
+    Apple: ['iPhone 11', 'iPhone 12', 'iPhone 13', 'iPhone 14', 'iPhone 15', 'iPhone 15 Pro Max', 'iPhone 16', 'iPhone XR', 'iPhone 8 Plus'],
+    Samsung: ['Galaxy A14', 'Galaxy A15', 'Galaxy A34', 'Galaxy A54', 'Galaxy S21', 'Galaxy S22', 'Galaxy S23', 'Galaxy S24 Ultra'],
+    Motorola: ['Moto G53', 'Moto G54', 'Moto G84', 'Moto G22', 'Moto G32', 'Edge 40 Neo', 'Moto E22'],
+    Xiaomi: ['Redmi Note 11', 'Redmi Note 12', 'Redmi Note 13 Pro', 'Poco X5 Pro', 'Poco X6 Pro', 'Redmi 12C'],
+    Realme: ['Realme C55', 'Realme 11 Pro+', 'Realme C53', 'Realme 9'],
+    LG: ['K41S', 'K51S', 'K61', 'Velvet'],
+    Outro: ['Asus Zenfone', 'Infinix Hot 30', 'Positivo', 'Nokia G21'],
+  },
+  defects: [
+    {
+      id: 'def-tela',
+      title: 'Tela Quebrada',
+      desc: 'Touch / Display / Linhas',
+      tag: 'Tela quebrada / Touch parou',
+      icon: 'Smartphone',
+      color: 'text-yellow-400',
+      badge: 'Frequente',
+    },
+    {
+      id: 'def-carga',
+      title: 'Não Carrega',
+      desc: 'Conector / Mau contato',
+      tag: 'Não carrega / Conector folgado',
+      icon: 'ZapOff',
+      color: 'text-amber-400',
+      badge: 'Hardware',
+    },
+    {
+      id: 'def-bateria',
+      title: 'Bateria Viciada',
+      desc: 'Descarrega rápido / Estufada',
+      tag: 'Bateria descarrega rápido / Estufada',
+      icon: 'BatteryWarning',
+      color: 'text-yellow-500',
+      badge: 'Consumo',
+    },
+    {
+      id: 'def-agua',
+      title: 'Molhou / Água',
+      desc: 'Desoxidação na cuba',
+      tag: 'Molhou / Caiu na água',
+      icon: 'Droplets',
+      color: 'text-cyan-400',
+      badge: 'Urgente',
+    },
+    {
+      id: 'def-nao-liga',
+      title: 'Não Liga',
+      desc: 'Apagado / Curto primário',
+      tag: 'Não liga / Totalmente apagado',
+      icon: 'PowerOff',
+      color: 'text-neutral-400',
+      badge: 'Placa',
+    },
+    {
+      id: 'def-audio',
+      title: 'Sem Áudio',
+      desc: 'Alto-falante / Microfone',
+      tag: 'Sem áudio / Microfone mudo',
+      icon: 'VolumeX',
+      color: 'text-orange-400',
+      badge: 'Áudio',
+    },
+    {
+      id: 'def-camera',
+      title: 'Câmera Falhando',
+      desc: 'Preta / Trincada / Foco',
+      tag: 'Câmera não abre / Trincada',
+      icon: 'Camera',
+      color: 'text-purple-400',
+      badge: 'Sensor',
+    },
+    {
+      id: 'def-traseira',
+      title: 'Vidro Traseiro',
+      desc: 'Tampa traseira trincada',
+      tag: 'Vidro traseiro quebrado',
+      icon: 'Layers',
+      color: 'text-rose-400',
+      badge: 'Carcaça',
+    },
+    {
+      id: 'def-loop',
+      title: 'Loop Infinito',
+      desc: 'Reiniciando no logo',
+      tag: 'Reiniciando em loop',
+      icon: 'RotateCcw',
+      color: 'text-blue-400',
+      badge: 'Sistema',
+    },
+    {
+      id: 'def-botoes',
+      title: 'Botões Travados',
+      desc: 'Power / Volume emperrado',
+      tag: 'Botão Power / Volume travado',
+      icon: 'SlidersHorizontal',
+      color: 'text-emerald-400',
+      badge: 'Chaves',
+    },
+  ],
+  accessories: [
+    { id: 'acc-1', name: 'Capa protetora', icon: 'Shield' },
+    { id: 'acc-2', name: 'Cabo carregador', icon: 'Zap' },
+    { id: 'acc-3', name: 'Fonte de tomada', icon: 'Cpu' },
+    { id: 'acc-4', name: 'Gaveta de chip presente', icon: 'HardDrive' },
+    { id: 'acc-5', name: 'Película instalada', icon: 'Layers' },
+    { id: 'acc-6', name: 'Caixa original do aparelho', icon: 'Package' },
+    { id: 'acc-7', name: 'Fone de ouvido', icon: 'Headphones' },
+  ],
+  checklistItems: [
+    { id: 'chk-1', key: 'screenCracked', label: 'Tela já trincada / com risco fundo', icon: 'AlertTriangle', dangerIfChecked: true },
+    { id: 'chk-2', key: 'housingScratched', label: 'Carcaça com marcas / amassados', icon: 'AlertTriangle', dangerIfChecked: true },
+    { id: 'chk-3', key: 'waterDamage', label: 'Indício de contato com líquido / água', icon: 'Droplets', dangerIfChecked: true },
+    { id: 'chk-4', key: 'simTrayPresent', label: 'Gaveta de chip (SIM) presente', icon: 'HardDrive', dangerIfChecked: false },
+    { id: 'chk-5', key: 'buttonsWorking', label: 'Botões físicos funcionando', icon: 'SlidersHorizontal', dangerIfChecked: false },
+    { id: 'chk-6', key: 'camerasWorking', label: 'Câmeras operacionais', icon: 'Camera', dangerIfChecked: false },
+    { id: 'chk-7', key: 'chargesNormal', label: 'Conector carrega normalmente', icon: 'Zap', dangerIfChecked: false },
+    { id: 'chk-8', key: 'speakerWorking', label: 'Alto-falante e microfone OK', icon: 'Volume2', dangerIfChecked: false },
+  ],
+  colors: ['Preto', 'Branco', 'Azul', 'Verde', 'Dourado', 'Prata', 'Grafite', 'Vermelho', 'Roxo', 'Titânio Natural'],
+  technicians: [
+    'Rafael Silveira (Bancada 1)',
+    'Lucas Mecânico (Bancada 2)',
+    'Amanda Técnica (Bancada 3)',
+  ],
+};
+
+export const getStoredOSConfig = (): OSConfigOptions => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.OS_CONFIG);
+    if (!raw) return DEFAULT_OS_CONFIG;
+    const parsed = JSON.parse(raw);
+    return {
+      brands: parsed.brands || DEFAULT_OS_CONFIG.brands,
+      modelsByBrand: parsed.modelsByBrand || DEFAULT_OS_CONFIG.modelsByBrand,
+      defects: parsed.defects || DEFAULT_OS_CONFIG.defects,
+      accessories: parsed.accessories || DEFAULT_OS_CONFIG.accessories,
+      checklistItems: parsed.checklistItems || DEFAULT_OS_CONFIG.checklistItems,
+      colors: parsed.colors || DEFAULT_OS_CONFIG.colors,
+      technicians: parsed.technicians || DEFAULT_OS_CONFIG.technicians,
+    };
+  } catch {
+    return DEFAULT_OS_CONFIG;
+  }
+};
+
+export const saveStoredOSConfig = (config: OSConfigOptions) => {
+  localStorage.setItem(STORAGE_KEYS.OS_CONFIG, JSON.stringify(config));
+};
+
+export const resetStoredOSConfig = (): OSConfigOptions => {
+  saveStoredOSConfig(DEFAULT_OS_CONFIG);
+  return DEFAULT_OS_CONFIG;
+};
+

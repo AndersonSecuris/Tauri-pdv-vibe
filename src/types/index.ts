@@ -7,6 +7,8 @@ export type OSStatus =
   | 'ENTREGUE'
   | 'CANCELADO';
 
+export type AppTheme = 'black-yellow' | 'dark' | 'light';
+
 export interface Cliente {
   id: string;
   name: string;
@@ -66,6 +68,7 @@ export interface OrdemDeServico {
     speakerWorking: boolean;
     waterDamage: boolean;
     simTrayPresent: boolean;
+    [key: string]: boolean | undefined;
   };
   accessoriesLeft: string[]; // ['Capa', 'Carregador', 'Cabo', 'Gaveta SIM']
   
@@ -171,4 +174,123 @@ export interface ConfiguracaoImpressora {
   storeInstagram: string;
   customHeaderNote: string;
   customFooterNote: string;
+
+  // Personalização dos itens que saem nas impressões térmicas
+  osPrintOptions?: PrintOSOptions;
+  salePrintOptions?: PrintSaleOptions;
+  techOSPrintOptions?: PrintTechOSOptions;
+}
+
+export interface PrintOSOptions {
+  showStoreHeader: boolean;
+  showStoreCnpj: boolean;
+  showStorePhone: boolean;
+  showStoreAddress: boolean;
+  showStoreInstagram: boolean;
+  showOSNumber: boolean;
+  showTrackingCode: boolean;
+  showEntryDate: boolean;
+  showExpectedDate: boolean;
+  showStatus: boolean;
+  showTechnician: boolean;
+  showClientName: boolean;
+  showClientPhone: boolean;
+  showClientCpf: boolean;
+  showDeviceModel: boolean;
+  showDeviceColor: boolean;
+  showDeviceImei: boolean;
+  showDevicePassword: boolean;
+  showIcloudStatus: boolean;
+  showReportedDefect: boolean;
+  showChecklist: boolean;
+  showAccessories: boolean;
+  showBudgetDetails: boolean;
+  showTotalAmount: boolean;
+  showPaymentStatus: boolean;
+  showTrackingInfo: boolean;
+  showWarrantyTerms: boolean;
+  showSignatureLine: boolean;
+  showCustomFooter: boolean;
+}
+
+export interface PrintSaleOptions {
+  showStoreHeader: boolean;
+  showStoreCnpj: boolean;
+  showStorePhone: boolean;
+  showStoreAddress: boolean;
+  showStoreInstagram: boolean;
+  showSaleCode: boolean;
+  showDate: boolean;
+  showCashierName: boolean;
+  showClientName: boolean;
+  showItemsList: boolean;
+  showSubtotal: boolean;
+  showDiscount: boolean;
+  showTotal: boolean;
+  showPaymentMethod: boolean;
+  showCashReceivedAndChange: boolean;
+  showWarrantyMessage: boolean;
+  showCustomFooter: boolean;
+}
+
+export interface PrintTechOSOptions {
+  showStoreHeader: boolean;
+  showOSNumber: boolean;
+  showTrackingCode: boolean;
+  showDates: boolean;
+  showTechnician: boolean;
+  showClientName: boolean;
+  showClientPhone: boolean;
+  showDeviceModel: boolean;
+  showDeviceColor: boolean;
+  showDeviceImei: boolean;
+  showDevicePassword: boolean;
+  showIcloudStatus: boolean;
+  showReportedDefect: boolean;
+  showChecklist: boolean;
+  showAccessories: boolean;
+  showDiagnosisSpace: boolean;
+  showBudget: boolean;
+  showCustomFooter: boolean;
+}
+
+// OS Configurable Options
+export interface MarcaConfig {
+  id: string;
+  name: string;
+  icon?: string;
+}
+
+export interface DefeitoConfig {
+  id: string;
+  title: string;
+  desc: string;
+  tag: string;
+  icon?: string;
+  color?: string;
+  badge?: string;
+}
+
+export interface AcessorioConfig {
+  id: string;
+  name: string;
+  icon?: string;
+}
+
+export interface ChecklistItemConfig {
+  id: string;
+  key: string;
+  label: string;
+  icon?: string;
+  dangerIfChecked?: boolean;
+}
+
+export interface OSConfigOptions {
+  brands: MarcaConfig[];
+  modelsByBrand: Record<string, string[]>;
+  defects: DefeitoConfig[];
+  accessories: AcessorioConfig[];
+  checklistItems: ChecklistItemConfig[];
+  colors: string[];
+  technicians: string[];
 }

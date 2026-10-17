@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { FormattedReceipt, executeEscPosPrint, downloadEscPosBinary } from '../services/escpos';
-import { ConfiguracaoImpressora } from '../types';
-import { Printer, Download, Copy, Check, Eye, X, Terminal, Cpu } from 'lucide-react';
+import { ConfiguracaoImpressora, AppTheme } from '../types';
+import { Printer, Download, Copy, Check, Eye, X, Terminal, Cpu, Sparkles } from 'lucide-react';
 
 interface ThermalReceiptPreviewProps {
   receipt: FormattedReceipt;
   config: ConfiguracaoImpressora;
   title: string;
+  theme?: AppTheme;
   onClose?: () => void;
 }
 
@@ -14,19 +15,31 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
   receipt,
   config,
   title,
+  theme = 'black-yellow',
   onClose,
 }) => {
+  const isDark = theme === 'black-yellow' || theme === 'dark';
+
   const [copied, setCopied] = useState(false);
   const [showHex, setShowHex] = useState(false);
   const [printingStatus, setPrintingStatus] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = async () => {
+    if (isPrinting) return;
+    setIsPrinting(true);
     setPrintingStatus('Enviando...');
-    const res = await executeEscPosPrint(receipt, config);
-    setPrintingStatus(res.message);
-    setTimeout(() => {
-      setPrintingStatus(null);
-    }, 4000);
+    try {
+      const res = await executeEscPosPrint(receipt, config);
+      setPrintingStatus(res.message);
+    } catch {
+      setPrintingStatus('Erro ao imprimir');
+    } finally {
+      setTimeout(() => {
+        setIsPrinting(false);
+        setPrintingStatus(null);
+      }, 2500);
+    }
   };
 
   const handleCopyText = () => {
@@ -42,7 +55,7 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
   const is58mm = config.paperWidth === '58mm';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Hidden print container for browser window.print() */}
       <div className={`hidden printable-receipt-area ${is58mm ? 'width-58mm' : ''}`}>
         <pre className="whitespace-pre-wrap font-mono text-black leading-tight text-xs">
@@ -50,17 +63,29 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
         </pre>
       </div>
 
-      <div className="bg-white rounded-xl shadow-2xl border border-neutral-200 max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden no-print">
+      <div
+        className={`rounded-2xl shadow-2xl border max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden no-print transition-colors ${
+          isDark
+            ? 'bg-[#121317] border-[#252631] text-neutral-100'
+            : 'bg-white border-neutral-200 text-neutral-900'
+        }`}
+      >
         {/* Modal Top Bar */}
-        <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/80">
+        <div
+          className={`px-6 py-4 border-b flex items-center justify-between ${
+            isDark ? 'bg-[#16171E] border-[#252631]' : 'bg-neutral-50 border-neutral-200'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
-              <Printer className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-yellow-400 text-neutral-950 flex items-center justify-center shadow-[0_0_12px_rgba(250,204,21,0.25)]">
+              <Printer className="w-4 h-4 stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
-              <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono">
-                <span>ESC/POS</span>
+              <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>{title}</span>
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono mt-0.5">
+                <span className="text-yellow-400 font-bold">ESC/POS</span>
                 <span aria-hidden="true">·</span>
                 <span>{config.paperWidth}</span>
                 <span aria-hidden="true">·</span>
@@ -72,12 +97,14 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowHex(!showHex)}
-              className={`p-1.5 rounded-md border text-xs font-mono transition-colors flex items-center gap-1.5 ${
+              className={`p-2 rounded-xl border text-xs font-mono transition-colors flex items-center gap-1.5 ${
                 showHex
-                  ? 'bg-neutral-900 text-white border-neutral-900'
+                  ? 'bg-yellow-400 text-neutral-950 border-yellow-400 font-black'
+                  : isDark
+                  ? 'bg-[#1D1F28] text-neutral-300 border-[#2E313E] hover:text-white'
                   : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'
               }`}
-              title="Alternar entre Cupom e Hexadecimal ESC/POS"
+              title="Alternar entre Cupom Térmico e Hexadecimal ESC/POS"
             >
               <Terminal className="w-3.5 h-3.5" />
               <span>{showHex ? 'Cupom' : 'Hex'}</span>
@@ -85,7 +112,11 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 transition-colors"
+                className={`p-2 rounded-xl border transition-colors ${
+                  isDark
+                    ? 'bg-[#1D1F28] border-[#2E313E] text-neutral-400 hover:text-white'
+                    : 'text-neutral-400 hover:text-neutral-700'
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -94,12 +125,16 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-neutral-100/70 flex justify-center">
+        <div
+          className={`flex-1 overflow-y-auto p-6 flex justify-center ${
+            isDark ? 'bg-[#0E0F12]' : 'bg-neutral-100/70'
+          }`}
+        >
           {showHex ? (
-            <div className="w-full bg-neutral-950 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto border border-neutral-800">
-              <div className="text-neutral-400 pb-2 mb-2 border-b border-neutral-800 flex items-center justify-between">
-                <span>// Sequência de bytes ESC/POS (Ready for Tauri / Serial / Raw Socket)</span>
-                <span>{receipt.rawBytes.length} BYTES</span>
+            <div className="w-full bg-[#08090B] text-yellow-400 p-4 rounded-xl font-mono text-xs overflow-x-auto border border-[#23242E]">
+              <div className="text-neutral-400 pb-2 mb-2 border-b border-[#23242E] flex items-center justify-between">
+                <span>// Sequência binária ESC/POS (Ready for Tauri / Serial / Raw Socket)</span>
+                <span className="text-white font-bold">{receipt.rawBytes.length} BYTES</span>
               </div>
               <p className="leading-relaxed tracking-wider break-all">{receipt.hexDump}</p>
             </div>
@@ -128,7 +163,6 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
               <div className="mt-5 pt-3 border-t border-dashed border-neutral-400 flex flex-col items-center">
                 <div className="w-full flex justify-center py-2">
                   <div className="h-10 flex items-center gap-[2px] opacity-85">
-                    {/* Simulated thermal barcode bars */}
                     {[2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 2].map(
                       (w, i) => (
                         <div
@@ -150,26 +184,44 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
 
         {/* Status notification if any */}
         {printingStatus && (
-          <div className="bg-emerald-50 border-t border-emerald-200 px-6 py-2.5 text-xs text-emerald-800 flex items-center gap-2">
-            <Cpu className="w-3.5 h-3.5 text-emerald-600" />
+          <div
+            className={`px-6 py-2.5 text-xs flex items-center gap-2 border-t font-bold ${
+              isDark
+                ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
             <span>{printingStatus}</span>
           </div>
         )}
 
-        {/* Modal Bottom Actions */}
-        <div className="px-6 py-4 border-t border-neutral-200 bg-white flex items-center justify-between">
+        {/* Modal Bottom Actions with Icons */}
+        <div
+          className={`px-6 py-4 border-t flex items-center justify-between ${
+            isDark ? 'bg-[#16171E] border-[#252631]' : 'bg-white border-neutral-200'
+          }`}
+        >
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyText}
-              className="px-3 py-2 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-1.5"
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition-colors flex items-center gap-1.5 ${
+                isDark
+                  ? 'bg-[#1D1F28] border-[#2E313E] text-neutral-300 hover:text-white'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
+              }`}
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copiado!' : 'Copiar Texto'}</span>
             </button>
             <button
               onClick={handleDownloadBin}
-              className="px-3 py-2 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-1.5"
-              title="Baixar arquivo binário ESC/POS para testes físicos"
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition-colors flex items-center gap-1.5 ${
+                isDark
+                  ? 'bg-[#1D1F28] border-[#2E313E] text-neutral-300 hover:text-white'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
+              }`}
+              title="Baixar arquivo binário ESC/POS para testes físicos em hardware"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Baixar .BIN</span>
@@ -180,17 +232,22 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
             {onClose && (
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
               >
                 Fechar
               </button>
             )}
             <button
               onClick={handlePrint}
-              className="px-4 py-2 text-xs font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+              disabled={isPrinting}
+              className={`px-4 py-2 text-xs font-black rounded-xl transition-all flex items-center gap-2 active:scale-95 ${
+                isPrinting
+                  ? 'bg-yellow-400/50 text-neutral-800 cursor-not-allowed'
+                  : 'text-neutral-950 bg-yellow-400 hover:bg-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.25)]'
+              }`}
             >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir Térmica</span>
+              <Printer className="w-4 h-4 stroke-[2.5]" />
+              <span>{isPrinting ? 'Processando...' : 'Imprimir Térmica'}</span>
             </button>
           </div>
         </div>

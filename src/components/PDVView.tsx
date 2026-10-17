@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ItemPDV, ItemVenda, Cliente, VendaPDV, ConfiguracaoImpressora } from '../types';
+import { ItemPDV, ItemVenda, Cliente, VendaPDV, ConfiguracaoImpressora, AppTheme } from '../types';
 import { formatBRL } from '../services/escpos';
 import confetti from 'canvas-confetti';
 import {
@@ -19,6 +19,14 @@ import {
   AlertTriangle,
   ArrowRight,
   Package,
+  Shield,
+  Cable,
+  PlugZap,
+  BatteryCharging,
+  Cpu,
+  Wrench,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 
 interface PDVViewProps {
@@ -27,16 +35,17 @@ interface PDVViewProps {
   printerConfig: ConfiguracaoImpressora;
   onCompleteSale: (sale: VendaPDV) => void;
   onOpenCaixa: () => void;
+  theme?: AppTheme;
 }
 
 const CATEGORIES = [
-  { id: 'ALL', label: 'Todos os Itens' },
-  { id: 'PELICULAS', label: 'Películas' },
-  { id: 'CABOS', label: 'Cabos' },
-  { id: 'ACESSORIOS', label: 'Acessórios & Fontes' },
-  { id: 'BATERIAS', label: 'Baterias' },
-  { id: 'PECAS', label: 'Peças & Telas' },
-  { id: 'SERVICOS', label: 'Serviços de Bancada' },
+  { id: 'ALL', label: 'Todos os Itens', icon: Layers },
+  { id: 'PELICULAS', label: 'Películas', icon: Shield },
+  { id: 'CABOS', label: 'Cabos Turbo', icon: Cable },
+  { id: 'ACESSORIOS', label: 'Fontes & Capas', icon: PlugZap },
+  { id: 'BATERIAS', label: 'Baterias', icon: BatteryCharging },
+  { id: 'PECAS', label: 'Peças & Telas', icon: Cpu },
+  { id: 'SERVICOS', label: 'Serviços Bancada', icon: Wrench },
 ];
 
 export const PDVView: React.FC<PDVViewProps> = ({
@@ -45,7 +54,10 @@ export const PDVView: React.FC<PDVViewProps> = ({
   printerConfig,
   onCompleteSale,
   onOpenCaixa,
+  theme = 'black-yellow',
 }) => {
+  const isDark = theme === 'black-yellow' || theme === 'dark';
+
   const [cart, setCart] = useState<ItemVenda[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,11 +188,23 @@ export const PDVView: React.FC<PDVViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-neutral-100/70">
+    <div
+      className={`flex-1 flex flex-col lg:flex-row overflow-hidden transition-colors ${
+        isDark ? 'bg-[#0E0F12] text-neutral-100' : 'bg-neutral-100/70 text-neutral-900'
+      }`}
+    >
       {/* Left Column: Product Catalog & Quick Search */}
-      <div className="flex-1 flex flex-col overflow-hidden border-r border-neutral-200 bg-white">
-        {/* Top Controls: Barcode scan input + Category Tabs */}
-        <div className="p-4 border-b border-neutral-200 space-y-3 bg-neutral-50/70">
+      <div
+        className={`flex-1 flex flex-col overflow-hidden border-r ${
+          isDark ? 'bg-[#121317] border-[#252630]' : 'bg-white border-neutral-200'
+        }`}
+      >
+        {/* Top Controls: Barcode scan input + Category Tabs with Icons */}
+        <div
+          className={`p-4 border-b space-y-3 ${
+            isDark ? 'bg-[#16171D] border-[#252630]' : 'bg-neutral-50/70 border-neutral-200'
+          }`}
+        >
           <div className="flex flex-col sm:flex-row items-center gap-3">
             {/* Barcode scanner quick form */}
             <form onSubmit={handleBarcodeSubmit} className="relative flex-1 w-full">
@@ -188,10 +212,14 @@ export const PDVView: React.FC<PDVViewProps> = ({
                 type="text"
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
-                placeholder="Leitor de Código de Barras / Digite código e Enter..."
-                className="w-full text-xs px-3 py-2 pl-9 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-900 font-mono shadow-2xs"
+                placeholder="Leitor de Código de Barras / Digite o código e aperte Enter..."
+                className={`w-full text-xs px-3 py-2.5 pl-9 border rounded-lg font-mono outline-none shadow-2xs transition-colors ${
+                  isDark
+                    ? 'bg-[#1E1F27] border-[#2F313D] text-yellow-400 placeholder-neutral-500 focus:border-yellow-400'
+                    : 'bg-white border-neutral-300 text-neutral-900 focus:border-neutral-900'
+                }`}
               />
-              <Barcode className="w-4 h-4 text-neutral-400 absolute left-3 top-2.5" />
+              <Barcode className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
             </form>
 
             {/* Keyword Search */}
@@ -201,27 +229,39 @@ export const PDVView: React.FC<PDVViewProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filtrar por nome..."
-                className="w-full text-xs px-3 py-2 pl-8 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                className={`w-full text-xs px-3 py-2.5 pl-8 border rounded-lg outline-none transition-colors ${
+                  isDark
+                    ? 'bg-[#1E1F27] border-[#2F313D] text-white placeholder-neutral-500 focus:border-yellow-400'
+                    : 'bg-white border-neutral-300 text-neutral-900 focus:border-neutral-900'
+                }`}
               />
-              <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-3" />
             </div>
           </div>
 
-          {/* Category Tabs */}
+          {/* Category Tabs with Icons */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-md whitespace-nowrap font-medium transition-colors ${
-                  selectedCategory === cat.id
-                    ? 'bg-neutral-900 text-white shadow-2xs'
-                    : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const isSelected = selectedCategory === cat.id;
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-bold transition-all flex items-center gap-1.5 border ${
+                    isSelected
+                      ? 'bg-yellow-400 text-neutral-950 border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.25)]'
+                      : isDark
+                      ? 'bg-[#1B1C23] border-[#2B2C37] text-neutral-400 hover:text-white hover:bg-[#23242E]'
+                      : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -232,32 +272,51 @@ export const PDVView: React.FC<PDVViewProps> = ({
               <button
                 key={prod.id}
                 onClick={() => handleAddToCart(prod)}
-                className="text-left p-3.5 rounded-xl border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-xs transition-all flex flex-col justify-between group h-36"
+                className={`text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between group h-36 active:scale-95 ${
+                  isDark
+                    ? 'bg-[#17181E] border-[#262732] hover:border-yellow-400/60 hover:bg-[#1E2028]'
+                    : 'bg-white border-neutral-200 hover:border-neutral-400 hover:shadow-xs'
+                }`}
               >
                 <div>
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono mb-1">
+                  <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono mb-1">
                     <span>{prod.code}</span>
                     <span
-                      className={`text-[10px] px-1 rounded ${
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
                         prod.stock <= prod.minStock
-                          ? 'bg-amber-100 text-amber-800'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : isDark
+                          ? 'bg-[#252630] text-neutral-400'
                           : 'bg-neutral-100 text-neutral-600'
                       }`}
                     >
-                      Est: {prod.stock}
+                      Estoque: {prod.stock}
                     </span>
                   </div>
-                  <div className="text-xs font-semibold text-neutral-900 line-clamp-2 group-hover:text-neutral-950">
+                  <div
+                    className={`text-xs font-bold line-clamp-2 transition-colors ${
+                      isDark ? 'text-white group-hover:text-yellow-400' : 'text-neutral-900'
+                    }`}
+                  >
                     {prod.name}
                   </div>
                 </div>
 
-                <div className="flex items-baseline justify-between pt-2 border-t border-neutral-100 mt-2">
-                  <span className="text-sm font-bold font-mono text-neutral-900">
+                <div
+                  className={`flex items-baseline justify-between pt-2 border-t mt-2 ${
+                    isDark ? 'border-[#262732]' : 'border-neutral-100'
+                  }`}
+                >
+                  <span className="text-sm font-extrabold font-mono text-yellow-400">
                     {formatBRL(prod.price)}
                   </span>
-                  <span className="text-[11px] text-neutral-400 font-medium group-hover:text-neutral-900 flex items-center gap-0.5">
-                    + Inserir
+                  <span
+                    className={`text-[11px] font-bold flex items-center gap-0.5 ${
+                      isDark ? 'text-neutral-400 group-hover:text-yellow-400' : 'text-neutral-500'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Inserir</span>
                   </span>
                 </div>
               </button>
@@ -267,33 +326,51 @@ export const PDVView: React.FC<PDVViewProps> = ({
       </div>
 
       {/* Right Column: Active Cart & Cashier Summary */}
-      <div className="w-full lg:w-96 bg-neutral-50 flex flex-col shrink-0 border-t lg:border-t-0 lg:border-l border-neutral-200">
+      <div
+        className={`w-full lg:w-96 flex flex-col shrink-0 border-t lg:border-t-0 lg:border-l ${
+          isDark ? 'bg-[#121317] border-[#252630]' : 'bg-neutral-50 border-neutral-200'
+        }`}
+      >
         {/* Cart Top Bar */}
-        <div className="p-4 border-b border-neutral-200 bg-white flex items-center justify-between">
+        <div
+          className={`p-4 border-b flex items-center justify-between ${
+            isDark ? 'bg-[#16171D] border-[#252630]' : 'bg-white border-neutral-200'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-neutral-800" />
-            <h2 className="text-sm font-semibold text-neutral-900">
+            <div className="w-7 h-7 rounded-lg bg-yellow-400/20 text-yellow-400 flex items-center justify-center">
+              <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
+            </div>
+            <h2 className="text-sm font-bold">
               Carrinho ({cart.reduce((sum, i) => sum + i.quantity, 0)})
             </h2>
           </div>
           <button
             onClick={onOpenCaixa}
-            className="text-xs text-neutral-600 hover:text-neutral-900 underline font-medium"
+            className="text-xs text-yellow-400 hover:underline font-bold flex items-center gap-1"
           >
-            Gestão do Caixa
+            <Coins className="w-3.5 h-3.5" />
+            <span>Gestão de Caixa</span>
           </button>
         </div>
 
         {/* Customer Select / Anonymous */}
-        <div className="p-3 border-b border-neutral-200 bg-neutral-100/50">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-neutral-500 font-medium">Cliente:</span>
+        <div
+          className={`p-3 border-b text-xs ${
+            isDark ? 'bg-[#181920] border-[#252630]' : 'bg-neutral-100/50 border-neutral-200'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-neutral-400 font-semibold flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-yellow-400" />
+              <span>Cliente:</span>
+            </span>
             {selectedClient ? (
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-neutral-900">{selectedClient.name}</span>
+                <span className="font-bold text-white">{selectedClient.name}</span>
                 <button
                   onClick={() => setSelectedClient(null)}
-                  className="text-neutral-400 hover:text-neutral-700"
+                  className="text-neutral-400 hover:text-white"
                 >
                   ✕
                 </button>
@@ -308,23 +385,23 @@ export const PDVView: React.FC<PDVViewProps> = ({
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-neutral-400 text-xs space-y-2">
-              <ShoppingCart className="w-8 h-8 opacity-40" />
-              <p>O carrinho de compras está vazio.</p>
-              <p className="text-[11px] text-neutral-400">
-                Passe o leitor de código de barras ou selecione os itens no catálogo à esquerda.
+              <ShoppingCart className="w-8 h-8 opacity-30 text-yellow-400" />
+              <p className="font-bold text-white">Carrinho Vazio</p>
+              <p className="text-[11px] text-neutral-500 max-w-xs">
+                Utilize o leitor de código de barras ou selecione os itens no catálogo ao lado.
               </p>
             </div>
           ) : (
             cart.map((item) => (
               <div
                 key={item.product.id}
-                className="bg-white rounded-lg border border-neutral-200 p-2.5 shadow-2xs flex items-center justify-between gap-3 text-xs"
+                className={`rounded-lg border p-2.5 shadow-2xs flex items-center justify-between gap-3 text-xs transition-colors ${
+                  isDark ? 'bg-[#181920] border-[#2A2B35]' : 'bg-white border-neutral-200'
+                }`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-neutral-900 truncate">
-                    {item.product.name}
-                  </div>
-                  <div className="text-[11px] text-neutral-500 font-mono">
+                  <div className="font-bold truncate text-white">{item.product.name}</div>
+                  <div className="text-[11px] text-yellow-400 font-mono">
                     {formatBRL(item.unitPrice)} un.
                   </div>
                 </div>
@@ -332,28 +409,36 @@ export const PDVView: React.FC<PDVViewProps> = ({
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => handleUpdateQty(item.product.id, -1)}
-                    className="w-6 h-6 rounded bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors"
+                    className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
+                      isDark
+                        ? 'bg-[#272833] hover:bg-[#343544] text-neutral-300'
+                        : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'
+                    }`}
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="w-6 text-center font-mono font-semibold text-neutral-900">
+                  <span className="w-6 text-center font-mono font-bold text-white">
                     {item.quantity}
                   </span>
                   <button
                     onClick={() => handleUpdateQty(item.product.id, 1)}
-                    className="w-6 h-6 rounded bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors"
+                    className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
+                      isDark
+                        ? 'bg-[#272833] hover:bg-[#343544] text-neutral-300'
+                        : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'
+                    }`}
                   >
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
 
-                <div className="text-right shrink-0 w-16 font-mono font-bold text-neutral-900">
+                <div className="text-right shrink-0 w-16 font-mono font-extrabold text-white">
                   {formatBRL(item.total)}
                 </div>
 
                 <button
                   onClick={() => handleRemoveFromCart(item.product.id)}
-                  className="text-neutral-400 hover:text-red-600 transition-colors p-1"
+                  className="text-neutral-500 hover:text-red-400 transition-colors p-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -362,14 +447,18 @@ export const PDVView: React.FC<PDVViewProps> = ({
           )}
         </div>
 
-        {/* Cart Financial Summary & Checkout Action */}
-        <div className="p-4 bg-white border-t border-neutral-200 space-y-3">
+        {/* Cart Financial Summary & Checkout Action with High-Contrast Yellow Button */}
+        <div
+          className={`p-4 border-t space-y-3 ${
+            isDark ? 'bg-[#16171D] border-[#252630]' : 'bg-white border-neutral-200'
+          }`}
+        >
           <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between text-neutral-500">
+            <div className="flex justify-between text-neutral-400">
               <span>Subtotal:</span>
               <span>{formatBRL(subtotal)}</span>
             </div>
-            <div className="flex justify-between items-center text-neutral-600">
+            <div className="flex justify-between items-center text-neutral-300">
               <span>Desconto (R$):</span>
               <input
                 type="number"
@@ -377,12 +466,20 @@ export const PDVView: React.FC<PDVViewProps> = ({
                 value={discount || ''}
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 placeholder="0,00"
-                className="w-20 text-right px-1.5 py-0.5 border border-neutral-300 rounded text-xs"
+                className={`w-20 text-right px-2 py-0.5 border rounded text-xs font-mono outline-none ${
+                  isDark
+                    ? 'bg-[#1E1F27] border-[#2F313D] text-yellow-400'
+                    : 'bg-white border-neutral-300 text-neutral-900'
+                }`}
               />
             </div>
-            <div className="flex justify-between text-base font-bold text-neutral-900 border-t border-neutral-200 pt-2">
-              <span>Total a Pagar:</span>
-              <span>{formatBRL(total)}</span>
+            <div
+              className={`flex justify-between text-base font-extrabold border-t pt-2 ${
+                isDark ? 'border-[#252630] text-white' : 'border-neutral-200 text-neutral-900'
+              }`}
+            >
+              <span>Total:</span>
+              <span className="text-yellow-400">{formatBRL(total)}</span>
             </div>
           </div>
 
@@ -392,114 +489,163 @@ export const PDVView: React.FC<PDVViewProps> = ({
               setCashReceived(total);
               setIsCheckoutOpen(true);
             }}
-            className={`w-full py-3 rounded-lg text-xs font-bold text-white transition-all flex items-center justify-center gap-2 shadow-xs ${
+            className={`w-full py-3 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-2 shadow-xs active:scale-95 ${
               cart.length === 0
-                ? 'bg-neutral-300 cursor-not-allowed'
-                : 'bg-neutral-900 hover:bg-neutral-800'
+                ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                : 'bg-yellow-400 hover:bg-yellow-300 text-neutral-950 shadow-[0_0_15px_rgba(250,204,21,0.25)]'
             }`}
           >
-            <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span>Finalizar Venda ({formatBRL(total)})</span>
+            <DollarSign className="w-4 h-4 stroke-[3]" />
+            <span>Fechar Venda ({formatBRL(total)})</span>
           </button>
         </div>
       </div>
 
-      {/* Checkout Modal */}
+      {/* Checkout Modal with Visual Payment Tiles */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-neutral-200 max-w-lg w-full overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div
+            className={`rounded-xl shadow-2xl border max-w-lg w-full overflow-hidden flex flex-col ${
+              isDark ? 'bg-[#141519] text-white border-[#2A2B35]' : 'bg-white text-neutral-900 border-neutral-200'
+            }`}
+          >
+            <div
+              className={`px-6 py-4 border-b flex items-center justify-between ${
+                isDark ? 'bg-[#181920] border-[#2A2B35]' : 'bg-neutral-50 border-neutral-200'
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-neutral-900" />
-                <h3 className="text-sm font-bold text-neutral-900">Fechar Venda & Pagamento</h3>
+                <Receipt className="w-5 h-5 text-yellow-400" />
+                <h3 className="text-sm font-bold">Fechar Venda & Pagamento</h3>
               </div>
               <button
                 onClick={() => setIsCheckoutOpen(false)}
-                className="text-neutral-400 hover:text-neutral-700"
+                className="text-neutral-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              <div className="text-center p-3 bg-neutral-100 rounded-lg">
-                <span className="text-neutral-500 block mb-0.5">Total a Receber:</span>
-                <span className="text-2xl font-bold font-mono text-neutral-900">
+              <div
+                className={`text-center p-4 rounded-xl border ${
+                  isDark ? 'bg-[#1A1B22] border-[#2E303C]' : 'bg-neutral-100 border-neutral-200'
+                }`}
+              >
+                <span className="text-neutral-400 block mb-0.5 text-xs font-semibold">Total a Receber:</span>
+                <span className="text-3xl font-black font-mono text-yellow-400">
                   {formatBRL(total)}
                 </span>
               </div>
 
-              {/* Payment Methods */}
+              {/* Payment Methods with Large Visual Tiles */}
               <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-800">Forma de Pagamento:</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="font-bold text-neutral-300">Escolha a Forma de Pagamento:</label>
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('PIX')}
-                    className={`p-3 rounded-lg border text-left flex items-center gap-2 transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'PIX'
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                        ? 'border-yellow-400 bg-yellow-400/15 text-white shadow-[0_0_12px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400'
+                        : isDark
+                        ? 'border-[#2A2B35] bg-[#1A1B22] text-neutral-300 hover:bg-[#23242E]'
+                        : 'border-neutral-200 hover:bg-neutral-50'
                     }`}
                   >
-                    <QrCode className="w-4 h-4" />
-                    <span className="font-semibold">PIX Instantâneo</span>
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <QrCode className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold">PIX Instantâneo</div>
+                      <div className="text-[10px] text-neutral-400">Aprovação imediata</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('DINHEIRO')}
-                    className={`p-3 rounded-lg border text-left flex items-center gap-2 transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'DINHEIRO'
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                        ? 'border-yellow-400 bg-yellow-400/15 text-white shadow-[0_0_12px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400'
+                        : isDark
+                        ? 'border-[#2A2B35] bg-[#1A1B22] text-neutral-300 hover:bg-[#23242E]'
+                        : 'border-neutral-200 hover:bg-neutral-50'
                     }`}
                   >
-                    <Coins className="w-4 h-4" />
-                    <span className="font-semibold">Dinheiro (Cédulas)</span>
+                    <div className="w-9 h-9 rounded-lg bg-yellow-400/20 text-yellow-400 flex items-center justify-center">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold">Dinheiro / Cédulas</div>
+                      <div className="text-[10px] text-neutral-400">Com cálculo de troco</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('CARTAO_DEBITO')}
-                    className={`p-3 rounded-lg border text-left flex items-center gap-2 transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'CARTAO_DEBITO'
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                        ? 'border-yellow-400 bg-yellow-400/15 text-white shadow-[0_0_12px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400'
+                        : isDark
+                        ? 'border-[#2A2B35] bg-[#1A1B22] text-neutral-300 hover:bg-[#23242E]'
+                        : 'border-neutral-200 hover:bg-neutral-50'
                     }`}
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span className="font-semibold">Cartão Débito</span>
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold">Cartão de Débito</div>
+                      <div className="text-[10px] text-neutral-400">Maquininha</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('CARTAO_CREDITO')}
-                    className={`p-3 rounded-lg border text-left flex items-center gap-2 transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all ${
                       paymentMethod === 'CARTAO_CREDITO'
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                        ? 'border-yellow-400 bg-yellow-400/15 text-white shadow-[0_0_12px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400'
+                        : isDark
+                        ? 'border-[#2A2B35] bg-[#1A1B22] text-neutral-300 hover:bg-[#23242E]'
+                        : 'border-neutral-200 hover:bg-neutral-50'
                     }`}
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span className="font-semibold">Cartão Crédito</span>
+                    <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold">Cartão de Crédito</div>
+                      <div className="text-[10px] text-neutral-400">Parcelamento</div>
+                    </div>
                   </button>
                 </div>
               </div>
 
               {/* Dinheiro Change Calculator */}
               {paymentMethod === 'DINHEIRO' && (
-                <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-200 space-y-2">
+                <div
+                  className={`p-3 rounded-lg border space-y-2 ${
+                    isDark ? 'bg-[#181920] border-[#2A2B35]' : 'bg-neutral-50 border-neutral-200'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-neutral-700">Valor Recebido do Cliente:</span>
+                    <span className="font-semibold text-neutral-300">Valor Recebido do Cliente:</span>
                     <input
                       type="number"
                       step="5"
                       value={cashReceived || ''}
                       onChange={(e) => setCashReceived(Number(e.target.value))}
-                      className="w-28 text-right font-mono text-sm px-2 py-1 border border-neutral-300 rounded font-bold"
+                      className={`w-28 text-right font-mono text-sm px-2 py-1 border rounded font-bold outline-none ${
+                        isDark ? 'bg-[#101114] border-yellow-400 text-yellow-400' : 'bg-white border-neutral-300'
+                      }`}
                     />
                   </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-neutral-200">
-                    <span className="font-bold text-neutral-800">Troco a Devolver:</span>
-                    <span className="text-base font-bold font-mono text-emerald-700">
+                  <div className="flex items-center justify-between pt-1 border-t border-[#2A2B35]">
+                    <span className="font-bold text-neutral-200">Troco a Devolver:</span>
+                    <span className="text-lg font-black font-mono text-emerald-400">
                       {formatBRL(changeAmount)}
                     </span>
                   </div>
@@ -508,37 +654,45 @@ export const PDVView: React.FC<PDVViewProps> = ({
 
               {/* PIX Key / QR simulation */}
               {paymentMethod === 'PIX' && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-3">
-                  <QrCode className="w-8 h-8 text-emerald-700 shrink-0" />
-                  <div className="text-[11px] text-emerald-900">
+                <div
+                  className={`p-3 rounded-lg border flex items-center gap-3 ${
+                    isDark ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-emerald-50 border-emerald-200'
+                  }`}
+                >
+                  <QrCode className="w-8 h-8 text-emerald-400 shrink-0" />
+                  <div className="text-[11px] text-emerald-300">
                     <strong>Chave PIX da Loja (CNPJ):</strong> 48.912.345/0001-90
-                    <div className="text-neutral-500 mt-0.5">
-                      Aguardando confirmação bancária do comprovante no balcão.
+                    <div className="text-neutral-400 mt-0.5">
+                      Confirme o comprovante no aplicativo antes de entregar a mercadoria.
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Thermal print notice */}
-              <div className="text-[11px] text-neutral-500 flex items-center gap-1.5 pt-1">
-                <span>🖨️ Cupom térmico ESC/POS será gerado e a gaveta será acionada automaticamente.</span>
+              <div className="text-[11px] text-neutral-400 flex items-center gap-1.5 pt-1">
+                <span>🖨️ Cupom ESC/POS será gerado e a gaveta será acionada automaticamente.</span>
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-neutral-200 bg-neutral-50 flex items-center justify-end gap-2">
+            <div
+              className={`px-6 py-4 border-t flex items-center justify-end gap-2 ${
+                isDark ? 'bg-[#181920] border-[#2A2B35]' : 'bg-neutral-50 border-neutral-200'
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setIsCheckoutOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-neutral-600 hover:text-neutral-900"
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleFinalizeSale}
-                className="px-5 py-2 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                className="px-5 py-2.5 text-xs font-black text-neutral-950 bg-yellow-400 hover:bg-yellow-300 rounded-lg transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(250,204,21,0.25)]"
               >
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <CheckCircle className="w-4 h-4 stroke-[3]" />
                 <span>Confirmar & Emitir Cupom</span>
               </button>
             </div>

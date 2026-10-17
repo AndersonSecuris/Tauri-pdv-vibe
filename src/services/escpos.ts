@@ -202,117 +202,411 @@ export const generateOSCustomerReceipt = (
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
   const b = new EscPosBuilder(config.paperWidth);
-  const w = getLineWidth(config.paperWidth);
+  const opts = config.osPrintOptions || {
+    showStoreHeader: true,
+    showStoreCnpj: true,
+    showStorePhone: true,
+    showStoreAddress: true,
+    showStoreInstagram: true,
+    showOSNumber: true,
+    showTrackingCode: true,
+    showEntryDate: true,
+    showExpectedDate: true,
+    showStatus: true,
+    showTechnician: true,
+    showClientName: true,
+    showClientPhone: true,
+    showClientCpf: true,
+    showDeviceModel: true,
+    showDeviceColor: true,
+    showDeviceImei: true,
+    showDevicePassword: true,
+    showIcloudStatus: true,
+    showReportedDefect: true,
+    showChecklist: true,
+    showAccessories: true,
+    showBudgetDetails: true,
+    showTotalAmount: true,
+    showPaymentStatus: true,
+    showTrackingInfo: true,
+    showWarrantyTerms: true,
+    showSignatureLine: true,
+    showCustomFooter: true,
+  };
 
   // Header
+  if (opts.showStoreHeader) {
+    b.alignCenter();
+    b.bold(true);
+    b.doubleSize();
+    b.line(config.storeName || 'CELLMASTER ASSISTENCIA');
+    b.normalSize();
+    b.bold(false);
+    if (opts.showStorePhone && config.storePhone) b.line(config.storePhone);
+    if (opts.showStoreAddress && config.storeAddress) b.line(config.storeAddress);
+    if (opts.showStoreCnpj && config.storeCnpj) b.line(`CNPJ: ${config.storeCnpj}`);
+    if (opts.showStoreInstagram && config.storeInstagram) b.line(`Instagram: ${config.storeInstagram}`);
+    b.divider('=');
+  }
+
+  // OS Identification
   b.alignCenter();
   b.bold(true);
-  b.doubleSize();
-  b.line(config.storeName || 'CELLMASTER ASSISTENCIA');
-  b.normalSize();
-  b.bold(false);
-  b.line(config.storePhone);
-  if (config.storeAddress) b.line(config.storeAddress);
-  if (config.storeCnpj) b.line(`CNPJ: ${config.storeCnpj}`);
-  b.divider('=');
-
-  // Title
-  b.bold(true);
   b.line(`COMPROVANTE DE ENTRADA DE O.S.`);
-  b.line(`NUMERO: ${os.id}`);
+  if (opts.showOSNumber) {
+    b.line(`NUMERO: ${os.id}`);
+  }
   b.bold(false);
-  b.line(`CODIGO RASTREIO: ${os.trackingCode}`);
-  b.line(`DATA: ${formatDateTime(os.entryDate)}`);
+  if (opts.showTrackingCode) {
+    b.line(`CODIGO RASTREIO: ${os.trackingCode}`);
+  }
+  if (opts.showEntryDate) {
+    b.line(`DATA: ${formatDateTime(os.entryDate)}`);
+  }
   b.divider('-');
 
   // Client Info
-  b.alignLeft();
-  b.bold(true);
-  b.line('[ DADOS DO CLIENTE ]');
-  b.bold(false);
-  b.justify('Nome:', os.client.name);
-  b.justify('Fone:', os.client.phone);
-  if (os.client.cpf) b.justify('CPF:', os.client.cpf);
-  b.divider('-');
+  const hasClientInfo = opts.showClientName || opts.showClientPhone || opts.showClientCpf;
+  if (hasClientInfo) {
+    b.alignLeft();
+    b.bold(true);
+    b.line('[ DADOS DO CLIENTE ]');
+    b.bold(false);
+    if (opts.showClientName) b.justify('Nome:', os.client.name);
+    if (opts.showClientPhone) b.justify('Fone:', os.client.phone);
+    if (opts.showClientCpf && os.client.cpf) b.justify('CPF:', os.client.cpf);
+    b.divider('-');
+  }
 
   // Device Info
-  b.bold(true);
-  b.line('[ DADOS DO APARELHO ]');
-  b.bold(false);
-  b.justify('Modelo:', `${os.device.brand} ${os.device.model}`);
-  b.justify('Cor:', os.device.color || 'Nao inf.');
-  if (os.device.imei) b.justify('IMEI:', os.device.imei);
-  if (os.device.passcode) {
-    b.justify('Senha Tela:', os.device.passcode);
-  } else if (os.device.patternLock && os.device.patternLock.length > 0) {
-    b.justify('Padrao 3x3:', os.device.patternLock.map(p => p + 1).join('-'));
+  const hasDeviceInfo =
+    opts.showDeviceModel ||
+    opts.showDeviceColor ||
+    opts.showDeviceImei ||
+    opts.showDevicePassword ||
+    opts.showIcloudStatus;
+
+  if (hasDeviceInfo) {
+    b.alignLeft();
+    b.bold(true);
+    b.line('[ DADOS DO APARELHO ]');
+    b.bold(false);
+    if (opts.showDeviceModel) b.justify('Modelo:', `${os.device.brand} ${os.device.model}`);
+    if (opts.showDeviceColor) b.justify('Cor:', os.device.color || 'Nao inf.');
+    if (opts.showDeviceImei && os.device.imei) b.justify('IMEI:', os.device.imei);
+    if (opts.showDevicePassword) {
+      if (os.device.passcode) {
+        b.justify('Senha Tela:', os.device.passcode);
+      } else if (os.device.patternLock && os.device.patternLock.length > 0) {
+        b.justify('Padrao 3x3:', os.device.patternLock.map(p => p + 1).join('-'));
+      }
+    }
+    if (opts.showIcloudStatus) {
+      b.justify('Conta iCloud/Google:', os.device.icloudStatus.replace(/_/g, ' '));
+    }
+    b.divider('-');
   }
-  b.justify('Conta iCloud/Google:', os.device.icloudStatus.replace(/_/g, ' '));
-  b.divider('-');
 
   // Reported Defect
-  b.bold(true);
-  b.line('[ DEFEITO RECLAMADO ]');
-  b.bold(false);
-  b.line(os.reportedDefect || 'Sem defeito relatado');
-  b.divider('-');
+  if (opts.showReportedDefect) {
+    b.alignLeft();
+    b.bold(true);
+    b.line('[ DEFEITO RECLAMADO ]');
+    b.bold(false);
+    b.line(os.reportedDefect || 'Sem defeito relatado');
+    b.divider('-');
+  }
 
   // Checklist of Initial Condition
-  b.bold(true);
-  b.line('[ ESTADO INICIAL / CHECKLIST ]');
-  b.bold(false);
-  const checklist = [];
-  if (os.initialChecklist.screenCracked) checklist.push('Tela trincada');
-  if (os.initialChecklist.housingScratched) checklist.push('Carcaca c/ riscos');
-  if (!os.initialChecklist.buttonsWorking) checklist.push('Botoes c/ defeito');
-  if (!os.initialChecklist.chargesNormal) checklist.push('Nao carrega');
-  if (os.initialChecklist.waterDamage) checklist.push('Aparelho molhado');
-  if (os.initialChecklist.simTrayPresent) checklist.push('Gaveta SIM presente');
-  
-  if (checklist.length > 0) {
-    b.line(checklist.join(' | '));
-  } else {
-    b.line('Aparelho em bom estado fisico.');
+  if (opts.showChecklist) {
+    b.alignLeft();
+    b.bold(true);
+    b.line('[ ESTADO INICIAL / CHECKLIST ]');
+    b.bold(false);
+    const checklist: string[] = [];
+    if (os.initialChecklist.screenCracked) checklist.push('Tela trincada');
+    if (os.initialChecklist.housingScratched) checklist.push('Carcaca c/ riscos');
+    if (!os.initialChecklist.buttonsWorking) checklist.push('Botoes c/ defeito');
+    if (!os.initialChecklist.chargesNormal) checklist.push('Nao carrega');
+    if (os.initialChecklist.waterDamage) checklist.push('Aparelho molhado');
+    if (os.initialChecklist.simTrayPresent) checklist.push('Gaveta SIM presente');
+    
+    // Support dynamic checklist keys
+    Object.keys(os.initialChecklist).forEach(key => {
+      if (
+        !['screenCracked', 'housingScratched', 'buttonsWorking', 'chargesNormal', 'waterDamage', 'simTrayPresent', 'camerasWorking', 'speakerWorking'].includes(key) &&
+        os.initialChecklist[key]
+      ) {
+        checklist.push(key);
+      }
+    });
+
+    if (checklist.length > 0) {
+      b.line(checklist.join(' | '));
+    } else {
+      b.line('Aparelho em bom estado fisico.');
+    }
   }
 
-  if (os.accessoriesLeft && os.accessoriesLeft.length > 0) {
+  // Accessories
+  if (opts.showAccessories && os.accessoriesLeft && os.accessoriesLeft.length > 0) {
+    b.alignLeft();
     b.justify('Acessorios:', os.accessoriesLeft.join(', '));
   }
-  b.divider('-');
+  if (opts.showChecklist || (opts.showAccessories && os.accessoriesLeft && os.accessoriesLeft.length > 0)) {
+    b.divider('-');
+  }
 
   // Forecast & Values
-  if (os.expectedDate) {
+  if (opts.showExpectedDate && os.expectedDate) {
     b.justify('Previsao Entrega:', formatDateTime(os.expectedDate));
   }
-  b.justify('Status Atual:', os.status.replace(/_/g, ' '));
-  if (os.totalAmount > 0) {
-    b.bold(true);
-    b.justify('Orcamento Estimado:', formatBRL(os.totalAmount));
-    b.bold(false);
-  } else {
-    b.justify('Orcamento:', 'Sob Analise Tecnica');
+  if (opts.showTechnician && os.technician) {
+    b.justify('Tecnico:', os.technician);
   }
+  if (opts.showStatus) {
+    b.justify('Status Atual:', os.status.replace(/_/g, ' '));
+  }
+
+  if (opts.showBudgetDetails && os.items && os.items.length > 0) {
+    b.divider('-');
+    b.bold(true);
+    b.line('[ PECAS E SERVICOS PREVISTOS ]');
+    b.bold(false);
+    os.items.forEach(item => {
+      b.justify(`${item.quantity}x ${item.description.slice(0, 18)}`, formatBRL(item.total));
+    });
+  }
+
+  if (opts.showTotalAmount) {
+    b.divider('-');
+    if (os.totalAmount > 0) {
+      b.bold(true);
+      b.justify('Orcamento Estimado:', formatBRL(os.totalAmount));
+      b.bold(false);
+    } else {
+      b.justify('Orcamento:', 'Sob Analise Tecnica');
+    }
+  }
+
+  if (opts.showPaymentStatus) {
+    b.justify('Pagamento:', os.paymentStatus === 'PAGO' ? 'PAGO' : 'PENDENTE');
+  }
+
   b.divider('=');
 
-  // Legal / CDC Warranty Terms
-  b.alignCenter();
-  b.line('RASTREIE SEU CONSERTO ONLINE:');
-  b.bold(true);
-  b.line(`app.cellmaster.com.br/rastreio`);
-  b.line(`CODIGO: ${os.trackingCode}`);
-  b.bold(false);
-  b.divider('-');
-  b.line('TERMO DE RESPONSABILIDADE:');
-  b.line('Aparelhos nao retirados em 90');
-  b.line('dias serao encaminhados para');
-  b.line('descarte/venda p/ cobrir custos');
-  b.line('conforme Art. 1275 do CCB.');
-  b.feed(1);
-  b.line('_________________________________');
-  b.line('Assinatura do Cliente');
-  
-  if (config.customFooterNote) {
+  // Legal / Tracking / CDC Warranty Terms
+  if (opts.showTrackingInfo) {
+    b.alignCenter();
+    b.line('RASTREIE SEU CONSERTO ONLINE:');
+    b.bold(true);
+    b.line(`app.cellmaster.com.br/rastreio`);
+    b.line(`CODIGO: ${os.trackingCode}`);
+    b.bold(false);
+  }
+
+  if (opts.showWarrantyTerms) {
+    b.divider('-');
+    b.alignCenter();
+    b.line('TERMO DE RESPONSABILIDADE:');
+    b.line('Aparelhos nao retirados em 90');
+    b.line('dias serao encaminhados para');
+    b.line('descarte/venda p/ cobrir custos');
+    b.line('conforme Art. 1275 do CCB.');
+  }
+
+  if (opts.showSignatureLine) {
     b.feed(1);
+    b.line('_________________________________');
+    b.line('Assinatura do Cliente');
+  }
+  
+  if (opts.showCustomFooter && config.customFooterNote) {
+    b.feed(1);
+    b.line(config.customFooterNote);
+  }
+
+  if (config.autoCut) {
+    b.cut();
+  }
+
+  return b.build(config.paperWidth);
+};
+
+// Generate Compact Technician OS (O.S. Técnico - Via Reduzida para Bancada)
+export const generateOSTechReceipt = (
+  os: OrdemDeServico,
+  config: ConfiguracaoImpressora
+): FormattedReceipt => {
+  const b = new EscPosBuilder(config.paperWidth);
+  const opts = config.techOSPrintOptions || {
+    showStoreHeader: true,
+    showOSNumber: true,
+    showTrackingCode: true,
+    showDates: true,
+    showTechnician: true,
+    showClientName: true,
+    showClientPhone: true,
+    showDeviceModel: true,
+    showDeviceColor: true,
+    showDeviceImei: true,
+    showDevicePassword: true,
+    showIcloudStatus: true,
+    showReportedDefect: true,
+    showChecklist: true,
+    showAccessories: true,
+    showDiagnosisSpace: true,
+    showBudget: true,
+    showCustomFooter: true,
+  };
+
+  // Technician Header
+  b.alignCenter();
+  b.bold(true);
+  b.line('*** O.S. TECNICO (VIA REDUZIDA) ***');
+  if (opts.showStoreHeader && config.storeName) {
+    b.line(config.storeName);
+  }
+  b.bold(false);
+  b.divider('=');
+
+  // OS Identifiers
+  if (opts.showOSNumber) {
+    b.alignCenter();
+    b.bold(true);
+    b.doubleSize();
+    b.line(os.id);
+    b.normalSize();
+    b.bold(false);
+  }
+
+  b.alignLeft();
+  if (opts.showTrackingCode) {
+    b.justify('RASTREIO:', os.trackingCode);
+  }
+  if (opts.showTechnician) {
+    b.bold(true);
+    b.justify('TECNICO RESP.:', os.technician || 'Geral');
+    b.bold(false);
+  }
+  if (opts.showDates) {
+    b.justify('ENTRADA:', formatDateTime(os.entryDate));
+    if (os.expectedDate) {
+      b.justify('PREV. ENTREGA:', formatDateTime(os.expectedDate));
+    }
+  }
+  b.divider('-');
+
+  // Client info (concise)
+  if (opts.showClientName || opts.showClientPhone) {
+    b.bold(true);
+    b.line('[ CONTATO CLIENTE ]');
+    b.bold(false);
+    if (opts.showClientName) b.justify('Cliente:', os.client.name);
+    if (opts.showClientPhone) b.justify('WhatsApp:', os.client.phone);
+    b.divider('-');
+  }
+
+  // Device details
+  if (opts.showDeviceModel || opts.showDeviceColor || opts.showDeviceImei) {
+    b.bold(true);
+    b.line('[ APARELHO ]');
+    b.bold(false);
+    if (opts.showDeviceModel) b.justify('Modelo:', `${os.device.brand} ${os.device.model}`);
+    if (opts.showDeviceColor) b.justify('Cor:', os.device.color || '-');
+    if (opts.showDeviceImei && os.device.imei) b.justify('IMEI:', os.device.imei);
+    b.divider('-');
+  }
+
+  // Security & Unlock (Critical for Bench Work)
+  if (opts.showDevicePassword || opts.showIcloudStatus) {
+    b.bold(true);
+    b.line('[ SEGURANCA & DESBLOQUEIO ]');
+    if (opts.showDevicePassword) {
+      if (os.device.passcode) {
+        b.justify('SENHA PIN:', `[ ${os.device.passcode} ]`);
+      } else if (os.device.patternLock && os.device.patternLock.length > 0) {
+        b.justify('PADRAO 3x3:', os.device.patternLock.map(p => p + 1).join(' -> '));
+      } else {
+        b.justify('SENHA TELA:', 'SEM SENHA / LIVRE');
+      }
+    }
+    if (opts.showIcloudStatus) {
+      b.bold(false);
+      b.justify('Conta Vinculada:', os.device.icloudStatus.replace(/_/g, ' '));
+    }
+    b.divider('-');
+  }
+
+  // Defect
+  if (opts.showReportedDefect) {
+    b.bold(true);
+    b.line('[ DEFEITO RECLAMADO ]');
+    b.bold(false);
+    b.line(os.reportedDefect);
+    b.divider('-');
+  }
+
+  // Checklist
+  if (opts.showChecklist) {
+    b.bold(true);
+    b.line('[ CHECKLIST FISICO ]');
+    b.bold(false);
+    const checks: string[] = [];
+    if (os.initialChecklist.screenCracked) checks.push('TELA TRINCADA');
+    if (os.initialChecklist.housingScratched) checks.push('CARCACA RISCADA');
+    if (!os.initialChecklist.buttonsWorking) checks.push('BOTOES DEFEITO');
+    if (!os.initialChecklist.chargesNormal) checks.push('NAO CARREGA');
+    if (os.initialChecklist.waterDamage) checks.push('COM UMIDADE/OXIDACAO');
+    if (os.initialChecklist.simTrayPresent) checks.push('GAVETA PRESENTE');
+    
+    if (checks.length > 0) {
+      b.line(checks.join(' | '));
+    } else {
+      b.line('Checklist OK (sem avarias aparentes)');
+    }
+    b.divider('-');
+  }
+
+  // Accessories
+  if (opts.showAccessories && os.accessoriesLeft && os.accessoriesLeft.length > 0) {
+    b.bold(true);
+    b.line('[ ACESSORIOS DEIXADOS ]');
+    b.bold(false);
+    b.line(os.accessoriesLeft.join(', '));
+    b.divider('-');
+  }
+
+  // Budget
+  if (opts.showBudget) {
+    b.bold(true);
+    if (os.totalAmount > 0) {
+      b.justify('VALOR APROVADO:', formatBRL(os.totalAmount));
+    } else {
+      b.justify('VALOR:', 'SOB AVALIACAO TECNICA');
+    }
+    b.bold(false);
+  }
+
+  // Bench Testing Checklist & Notes Space
+  if (opts.showDiagnosisSpace) {
+    b.divider('-');
+    b.bold(true);
+    b.line('[ TESTES DE BANCADA ]');
+    b.bold(false);
+    b.line('( ) Teste de Display & Touch');
+    b.line('( ) Consumo na Fonte de Bancada');
+    b.line('( ) Conector de Carga & Dock');
+    b.line('( ) Microfones & Alto-falantes');
+    b.line('( ) Cameras Frontal & Traseira');
+    b.feed(1);
+    b.line('Laudo Tecnico: _________________');
+    b.line('Assinatura Tec: ________________');
+  }
+
+  if (opts.showCustomFooter && config.customFooterNote) {
+    b.feed(1);
+    b.alignCenter();
     b.line(config.customFooterNote);
   }
 
@@ -387,62 +681,103 @@ export const generateSaleReceipt = (
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
   const b = new EscPosBuilder(config.paperWidth);
+  const opts = config.salePrintOptions || {
+    showStoreHeader: true,
+    showStoreCnpj: true,
+    showStorePhone: true,
+    showStoreAddress: true,
+    showStoreInstagram: true,
+    showSaleCode: true,
+    showDate: true,
+    showCashierName: true,
+    showClientName: true,
+    showItemsList: true,
+    showSubtotal: true,
+    showDiscount: true,
+    showTotal: true,
+    showPaymentMethod: true,
+    showCashReceivedAndChange: true,
+    showWarrantyMessage: true,
+    showCustomFooter: true,
+  };
 
   if (config.openCashDrawerOnSale) {
     b.kickDrawer();
   }
 
   // Header
-  b.alignCenter();
-  b.bold(true);
-  b.line(config.storeName || 'CELLMASTER PDV');
-  b.bold(false);
-  if (config.storeCnpj) b.line(`CNPJ: ${config.storeCnpj}`);
-  if (config.storePhone) b.line(`Tel: ${config.storePhone}`);
-  b.divider('=');
+  if (opts.showStoreHeader) {
+    b.alignCenter();
+    b.bold(true);
+    b.line(config.storeName || 'CELLMASTER PDV');
+    b.bold(false);
+    if (opts.showStoreCnpj && config.storeCnpj) b.line(`CNPJ: ${config.storeCnpj}`);
+    if (opts.showStorePhone && config.storePhone) b.line(`Tel: ${config.storePhone}`);
+    if (opts.showStoreAddress && config.storeAddress) b.line(config.storeAddress);
+    b.divider('=');
+  }
 
+  b.alignCenter();
   b.line(`CUPOM NAO FISCAL DE VENDA`);
-  b.bold(true);
-  b.line(`VENDA #${sale.code}`);
-  b.bold(false);
-  b.line(`DATA: ${formatDateTime(sale.date)}`);
-  b.justify('Operador:', sale.cashierName);
-  if (sale.client) {
+  if (opts.showSaleCode) {
+    b.bold(true);
+    b.line(`VENDA #${sale.code}`);
+    b.bold(false);
+  }
+  if (opts.showDate) {
+    b.line(`DATA: ${formatDateTime(sale.date)}`);
+  }
+  if (opts.showCashierName) {
+    b.justify('Operador:', sale.cashierName);
+  }
+  if (opts.showClientName && sale.client) {
     b.justify('Cliente:', sale.client.name);
+    if (sale.client.cpf) {
+      b.justify('CPF:', sale.client.cpf);
+    }
   }
   b.divider('-');
 
   // Items
+  if (opts.showItemsList) {
+    b.alignLeft();
+    b.bold(true);
+    b.line('ITEM   DESC       QTD   VL.UNIT   TOTAL');
+    b.bold(false);
+    b.divider('-');
+
+    sale.items.forEach((item, index) => {
+      const idx = (index + 1).toString().padStart(2, '0');
+      const name = item.product.name.slice(0, 14);
+      const line1 = `${idx} ${name}`;
+      const line2 = `   ${item.quantity}x ${formatBRL(item.unitPrice)} = ${formatBRL(item.total)}`;
+      b.line(line1);
+      b.line(line2);
+    });
+    b.divider('-');
+  }
+
   b.alignLeft();
-  b.bold(true);
-  b.line('ITEM   DESC       QTD   VL.UNIT   TOTAL');
-  b.bold(false);
-  b.divider('-');
-
-  sale.items.forEach((item, index) => {
-    const idx = (index + 1).toString().padStart(2, '0');
-    const name = item.product.name.slice(0, 14);
-    const line1 = `${idx} ${name}`;
-    const line2 = `   ${item.quantity}x ${formatBRL(item.unitPrice)} = ${formatBRL(item.total)}`;
-    b.line(line1);
-    b.line(line2);
-  });
-
-  b.divider('-');
-  b.bold(true);
-  b.justify('SUBTOTAL:', formatBRL(sale.subtotal));
-  if (sale.discount > 0) {
+  if (opts.showSubtotal) {
+    b.bold(true);
+    b.justify('SUBTOTAL:', formatBRL(sale.subtotal));
+  }
+  if (opts.showDiscount && sale.discount > 0) {
     b.justify('DESCONTO:', `- ${formatBRL(sale.discount)}`);
   }
-  b.doubleSize();
-  b.justify('TOTAL:', formatBRL(sale.total));
-  b.normalSize();
-  b.bold(false);
+  if (opts.showTotal) {
+    b.doubleSize();
+    b.justify('TOTAL:', formatBRL(sale.total));
+    b.normalSize();
+    b.bold(false);
+  }
   b.divider('-');
 
   // Payment details
-  b.justify('FORMA PAGTO:', sale.paymentMethod);
-  if (sale.cashReceived && sale.cashReceived > 0) {
+  if (opts.showPaymentMethod) {
+    b.justify('FORMA PAGTO:', sale.paymentMethod);
+  }
+  if (opts.showCashReceivedAndChange && sale.cashReceived && sale.cashReceived > 0) {
     b.justify('VALOR RECEBIDO:', formatBRL(sale.cashReceived));
     if (sale.changeAmount && sale.changeAmount > 0) {
       b.justify('TROCO:', formatBRL(sale.changeAmount));
@@ -451,9 +786,16 @@ export const generateSaleReceipt = (
 
   b.divider('=');
   b.alignCenter();
-  b.line('Obrigado pela preferencia!');
-  b.line('Garantia de 90 dias com este cupom.');
-  if (config.storeInstagram) b.line(`Siga: ${config.storeInstagram}`);
+  if (opts.showWarrantyMessage) {
+    b.line('Obrigado pela preferencia!');
+    b.line('Garantia de 90 dias com este cupom.');
+  }
+  if (opts.showStoreInstagram && config.storeInstagram) {
+    b.line(`Siga: ${config.storeInstagram}`);
+  }
+  if (opts.showCustomFooter && config.customFooterNote) {
+    b.line(config.customFooterNote);
+  }
 
   if (config.autoCut) {
     b.cut();

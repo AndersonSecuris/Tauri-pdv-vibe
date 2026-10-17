@@ -6,6 +6,8 @@ import {
   VendaPDV,
   CaixaSessao,
   ConfiguracaoImpressora,
+  AppTheme,
+  OSConfigOptions,
 } from './types';
 import {
   getStoredOrders,
@@ -18,9 +20,13 @@ import {
   saveStoredPrinterConfig,
   getStoredCaixa,
   saveStoredCaixa,
+  getStoredOSConfig,
+  saveStoredOSConfig,
+  resetStoredOSConfig,
 } from './services/storage';
 import {
   generateOSCustomerReceipt,
+  generateOSTechReceipt,
   generateOSWorkbenchSticker,
   generateSaleReceipt,
   generateCaixaReport,
@@ -36,18 +42,23 @@ import { PDVView } from './components/PDVView';
 import { CaixaModal } from './components/CaixaModal';
 import { ThermalReceiptPreview } from './components/ThermalReceiptPreview';
 import { ThermalPrinterSettingsModal } from './components/ThermalPrinterSettingsModal';
+import { OSConfigView } from './components/OSConfigView';
 
 export default function App() {
+  // Theme State (Default to Black & Yellow cyber/tech theme as requested)
+  const [theme, setTheme] = useState<AppTheme>('black-yellow');
+
   // Central Data States
   const [orders, setOrders] = useState<OrdemDeServico[]>(getStoredOrders);
   const [clients, setClients] = useState<Cliente[]>(getStoredClients);
   const [products, setProducts] = useState<ItemPDV[]>(getStoredProducts);
   const [caixa, setCaixa] = useState<CaixaSessao>(getStoredCaixa);
   const [printerConfig, setPrinterConfig] = useState<ConfiguracaoImpressora>(getStoredPrinterConfig);
+  const [osConfig, setOSConfig] = useState<OSConfigOptions>(getStoredOSConfig);
 
   // Active Main Navigation Tab
   const [currentTab, setCurrentTab] = useState<
-    'OS_LIST' | 'PDV' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS'
+    'OS_LIST' | 'PDV' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG'
   >('OS_LIST');
 
   // Modals & Panels
@@ -88,10 +99,25 @@ export default function App() {
     saveStoredPrinterConfig(printerConfig);
   }, [printerConfig]);
 
+  useEffect(() => {
+    saveStoredOSConfig(osConfig);
+  }, [osConfig]);
+
+  // Handler: Save and Reset OS Config
+  const handleSaveOSConfig = (updated: OSConfigOptions) => {
+    setOSConfig(updated);
+    saveStoredOSConfig(updated);
+  };
+
+  const handleResetOSConfig = () => {
+    const defaults = resetStoredOSConfig();
+    setOSConfig(defaults);
+  };
+
   // Handler: Save New Work Order (Fast OS Modal)
   const handleSaveNewOS = (
     newOS: OrdemDeServico,
-    printMode?: 'CUSTOMER_RECEIPT' | 'WORKBENCH_STICKER'
+    printMode?: 'CUSTOMER_RECEIPT' | 'TECH_RECEIPT' | 'WORKBENCH_STICKER'
   ) => {
     // 1. Add order to list
     const updatedOrders = [newOS, ...orders];
@@ -115,6 +141,12 @@ export default function App() {
         receipt,
         title: `Comprovante de Entrada - ${newOS.id}`,
       });
+    } else if (printMode === 'TECH_RECEIPT') {
+      const receipt = generateOSTechReceipt(newOS, printerConfig);
+      setReceiptPreview({
+        receipt,
+        title: `O.S. Técnico (Reduzida) - ${newOS.id}`,
+      });
     } else if (printMode === 'WORKBENCH_STICKER') {
       const receipt = generateOSWorkbenchSticker(newOS, printerConfig);
       setReceiptPreview({
@@ -134,13 +166,19 @@ export default function App() {
   // Handler: Print OS Receipt or Sticker from anywhere
   const handlePrintOS = (
     os: OrdemDeServico,
-    type: 'CUSTOMER_RECEIPT' | 'WORKBENCH_STICKER'
+    type: 'CUSTOMER_RECEIPT' | 'TECH_RECEIPT' | 'WORKBENCH_STICKER'
   ) => {
     if (type === 'CUSTOMER_RECEIPT') {
       const receipt = generateOSCustomerReceipt(os, printerConfig);
       setReceiptPreview({
         receipt,
         title: `Comprovante de Entrada - ${os.id}`,
+      });
+    } else if (type === 'TECH_RECEIPT') {
+      const receipt = generateOSTechReceipt(os, printerConfig);
+      setReceiptPreview({
+        receipt,
+        title: `O.S. Técnico (Reduzida) - ${os.id}`,
       });
     } else {
       const receipt = generateOSWorkbenchSticker(os, printerConfig);
@@ -241,8 +279,16 @@ export default function App() {
     handleUpdateOS(updated);
   };
 
+  const isDark = theme === 'black-yellow' || theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-neutral-100 flex flex-col font-sans selection:bg-neutral-900 selection:text-white antialiased">
+    <div
+      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 antialiased ${
+        isDark
+          ? 'bg-[#090A0D] text-neutral-100 selection:bg-yellow-400 selection:text-neutral-950'
+          : 'bg-neutral-100 text-neutral-900 selection:bg-neutral-900 selection:text-white'
+      }`}
+    >
       {/* Universal Top Bar */}
       <TopNav
         currentTab={currentTab}
@@ -260,6 +306,8 @@ export default function App() {
           setIsFastOSOpen(true);
         }}
         ordersCount={orders.length}
+        theme={theme}
+        onToggleTheme={() => setTheme((t: AppTheme) => (t === 'black-yellow' ? 'light' : 'black-yellow'))}
       />
 
       {/* Main View Container */}
@@ -268,6 +316,7 @@ export default function App() {
           <OSListView
             orders={orders}
             printerConfig={printerConfig}
+            theme={theme}
             onOpenOS={(os) => setActiveOSForDetails(os)}
             onNewOS={() => {
               setPreselectedClient(null);
@@ -278,6 +327,7 @@ export default function App() {
               setTrackerInitialQuery(query || '');
               setIsTrackerOpen(true);
             }}
+            onOpenOSConfig={() => setCurrentTab('OS_CONFIG')}
           />
         )}
 
@@ -286,6 +336,7 @@ export default function App() {
             products={products}
             clients={clients}
             printerConfig={printerConfig}
+            theme={theme}
             onCompleteSale={handleCompleteSale}
             onOpenCaixa={() => setIsCaixaModalOpen(true)}
           />
@@ -295,11 +346,22 @@ export default function App() {
           <ClientHistoryView
             clients={clients}
             orders={orders}
+            theme={theme}
             onOpenOS={(os) => setActiveOSForDetails(os)}
             onNewOSForClient={(client) => {
               setPreselectedClient(client);
               setIsFastOSOpen(true);
             }}
+          />
+        )}
+
+        {currentTab === 'OS_CONFIG' && (
+          <OSConfigView
+            config={osConfig}
+            onSaveConfig={handleSaveOSConfig}
+            onResetDefaults={handleResetOSConfig}
+            theme={theme}
+            onClose={() => setCurrentTab('OS_LIST')}
           />
         )}
       </main>
@@ -310,6 +372,12 @@ export default function App() {
           existingClients={clients}
           existingOrders={orders}
           printerConfig={printerConfig}
+          theme={theme}
+          osConfig={osConfig}
+          onOpenOSConfig={() => {
+            setIsFastOSOpen(false);
+            setCurrentTab('OS_CONFIG');
+          }}
           onSave={handleSaveNewOS}
           onClose={() => {
             setIsFastOSOpen(false);
@@ -323,6 +391,7 @@ export default function App() {
         <OSDetailsModal
           os={activeOSForDetails}
           printerConfig={printerConfig}
+          theme={theme}
           onUpdate={handleUpdateOS}
           onPrint={(type) => handlePrintOS(activeOSForDetails, type)}
           onClose={() => setActiveOSForDetails(null)}
@@ -334,6 +403,7 @@ export default function App() {
         <OSTrackerModal
           orders={orders}
           initialSearch={trackerInitialQuery}
+          theme={theme}
           onApproveBudget={handleApproveBudget}
           onClose={() => {
             setIsTrackerOpen(false);
@@ -347,6 +417,7 @@ export default function App() {
         <CaixaModal
           caixa={caixa}
           printerConfig={printerConfig}
+          theme={theme}
           onUpdateCaixa={(newCaixa) => setCaixa(newCaixa)}
           onPrintReport={handlePrintCaixaReport}
           onClose={() => setIsCaixaModalOpen(false)}
@@ -357,6 +428,7 @@ export default function App() {
       {isPrinterModalOpen && (
         <ThermalPrinterSettingsModal
           config={printerConfig}
+          theme={theme}
           onSaveConfig={(newConfig) => setPrinterConfig(newConfig)}
           onClose={() => setIsPrinterModalOpen(false)}
         />
@@ -368,6 +440,7 @@ export default function App() {
           receipt={receiptPreview.receipt}
           config={printerConfig}
           title={receiptPreview.title}
+          theme={theme}
           onClose={() => setReceiptPreview(null)}
         />
       )}
