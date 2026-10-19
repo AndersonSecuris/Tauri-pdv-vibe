@@ -29,11 +29,15 @@
 
 /* Custom thermal receipt styling */
 .thermal-paper {
-  background: #fbfbf8;
+  background: #fbfbf8 !important;
   color: #111111;
   font-family: 'JetBrains Mono', monospace;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.1);
   position: relative;
+  display: block;
+  height: auto !important;
+  min-height: fit-content !important;
+  box-sizing: border-box;
 }
 
 .thermal-paper::after {
@@ -56,43 +60,35 @@
 
 /* Print mode optimization for thermal printers (Eliminates duplicate prints and page breaks) */
 @media print {
+  /* Complete isolation: hide the main React root app to prevent duplicate pages */
+  #root {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
   }
-  
-  /* Hide all regular app UI during print */
-  .no-print {
-    display: none !important;
-  }
 
-  body * {
-    visibility: hidden;
-  }
-
-  /* Show only active printable receipt */
-  .printable-receipt-area,
-  .printable-receipt-area * {
-    visibility: visible !important;
-  }
-
+  /* Show only active printable receipt container */
   .printable-receipt-area {
     display: block !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    max-width: 80mm !important;
+    visibility: visible !important;
+    position: static !important;
     margin: 0 !important;
     padding: 2mm 3mm !important;
+    width: 100% !important;
+    max-width: 80mm !important;
     font-size: 11px !important;
     line-height: 1.25 !important;
-    font-family: monospace !important;
+    font-family: 'JetBrains Mono', monospace !important;
     color: #000000 !important;
     box-shadow: none !important;
     background: #ffffff !important;
@@ -103,8 +99,19 @@
     break-after: avoid !important;
   }
 
+  .printable-receipt-area * {
+    visibility: visible !important;
+  }
+
   .printable-receipt-area.width-58mm {
     max-width: 58mm !important;
     font-size: 9.5px !important;
+  }
+}
+
+/* In normal screen mode, keep printable-receipt-area hidden */
+@media screen {
+  .printable-receipt-area {
+    display: none !important;
   }
 }

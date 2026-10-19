@@ -1367,13 +1367,13 @@ export const ThermalPrinterSettingsModal: React.FC<ThermalPrinterSettingsModalPr
                 </button>
               </div>
 
-              <div className="flex justify-center py-2 bg-neutral-900/60 rounded-lg overflow-x-auto">
+              <div className="flex flex-col items-center py-2 bg-neutral-900/60 rounded-lg overflow-x-auto">
                 <div
-                  className={`thermal-paper p-5 rounded-sm border border-neutral-400 ${
+                  className={`thermal-paper p-5 pb-8 rounded-sm border border-neutral-400 shrink-0 ${
                     form.paperWidth === '58mm' ? 'w-[280px]' : 'w-[360px]'
                   }`}
                 >
-                  <pre className="font-mono text-[11px] leading-[1.3] text-neutral-900 whitespace-pre-wrap select-text">
+                  <pre className="font-mono text-[11px] leading-[1.3] text-neutral-900 whitespace-pre-wrap break-words select-text m-0 p-0">
                     {livePreviewReceipt.receipt.text}
                   </pre>
                 </div>

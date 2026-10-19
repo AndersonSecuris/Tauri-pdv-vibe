@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FormattedReceipt, executeEscPosPrint, downloadEscPosBinary } from '../services/escpos';
 import { ConfiguracaoImpressora, AppTheme } from '../types';
 import { Printer, Download, Copy, Check, Eye, X, Terminal, Cpu, Sparkles } from 'lucide-react';
@@ -55,21 +56,26 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
   const is58mm = config.paperWidth === '58mm';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      {/* Hidden print container for browser window.print() */}
-      <div className={`hidden printable-receipt-area ${is58mm ? 'width-58mm' : ''}`}>
-        <pre className="whitespace-pre-wrap font-mono text-black leading-tight text-xs">
-          {receipt.text}
-        </pre>
-      </div>
+    <>
+      {/* Isolated Print Portal on document.body for clean zero-duplication printing */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div className={`printable-receipt-area ${is58mm ? 'width-58mm' : ''}`}>
+            <pre className="whitespace-pre-wrap font-mono text-black leading-tight text-xs m-0 p-0">
+              {receipt.text}
+            </pre>
+          </div>,
+          document.body
+        )}
 
-      <div
-        className={`rounded-2xl shadow-2xl border max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden no-print transition-colors ${
-          isDark
-            ? 'bg-[#121317] border-[#252631] text-neutral-100'
-            : 'bg-white border-neutral-200 text-neutral-900'
-        }`}
-      >
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+          className={`rounded-2xl shadow-2xl border max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden transition-colors ${
+            isDark
+              ? 'bg-[#121317] border-[#252631] text-neutral-100'
+              : 'bg-white border-neutral-200 text-neutral-900'
+          }`}
+        >
         {/* Modal Top Bar */}
         <div
           className={`px-6 py-4 border-b flex items-center justify-between ${
@@ -126,8 +132,8 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
 
         {/* Content Body */}
         <div
-          className={`flex-1 overflow-y-auto p-6 flex justify-center ${
-            isDark ? 'bg-[#0E0F12]' : 'bg-neutral-100/70'
+          className={`flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center ${
+            isDark ? 'bg-[#0E0F12]' : 'bg-neutral-200/80'
           }`}
         >
           {showHex ? (
@@ -140,7 +146,7 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
             </div>
           ) : (
             <div
-              className={`thermal-paper p-6 rounded-t-sm transition-all duration-200 border border-neutral-300 ${
+              className={`thermal-paper p-5 sm:p-6 pb-8 my-auto sm:my-2 rounded-t-sm transition-all duration-200 border border-neutral-300 shrink-0 ${
                 is58mm ? 'w-[280px]' : 'w-[360px]'
               }`}
             >
@@ -155,7 +161,7 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
               </div>
 
               {/* Monospace thermal text */}
-              <pre className="font-mono text-[11px] leading-[1.3] text-neutral-900 whitespace-pre-wrap select-text">
+              <pre className="font-mono text-[11px] leading-[1.3] text-neutral-900 whitespace-pre-wrap break-words select-text m-0 p-0">
                 {receipt.text}
               </pre>
 
@@ -253,5 +259,6 @@ export const ThermalReceiptPreview: React.FC<ThermalReceiptPreviewProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

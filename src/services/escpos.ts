@@ -861,6 +861,123 @@ export const generateCaixaReport = (
   return b.build(config.paperWidth);
 };
 
+// Browser isolated iframe printing utility (Prevents double sheets and repetition)
+export const printThermalReceiptBrowser = (
+  text: string,
+  paperWidth: '58mm' | '80mm' = '80mm',
+  title = 'Comprovante CellMaster'
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      // Remove any existing print iframe
+      const oldFrame = document.getElementById('print-receipt-iframe');
+      if (oldFrame) {
+        oldFrame.remove();
+      }
+
+      const iframe = document.createElement('iframe');
+      iframe.id = 'print-receipt-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.visibility = 'hidden';
+      iframe.style.zIndex = '-9999';
+      document.body.appendChild(iframe);
+
+      const is58mm = paperWidth === '58mm';
+      const maxWidth = is58mm ? '58mm' : '80mm';
+      const fontSize = is58mm ? '9.5px' : '11px';
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        resolve(true);
+        return;
+      }
+
+      doc.open();
+      doc.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${title}</title>
+    <style>
+      @page {
+        size: ${maxWidth} auto;
+        margin: 0 !important;
+      }
+      @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+          width: ${maxWidth} !important;
+          max-width: ${maxWidth} !important;
+          height: auto !important;
+          overflow: visible !important;
+        }
+      }
+      body {
+        margin: 0;
+        padding: 2mm 3mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: ${fontSize};
+        line-height: 1.25;
+        color: #000000;
+        background: #ffffff;
+        width: ${maxWidth};
+        max-width: ${maxWidth};
+        box-sizing: border-box;
+      }
+      pre {
+        margin: 0;
+        padding: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        color: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <pre>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+    <script>
+      window.onload = function() {
+        setTimeout(function() {
+          try {
+            window.focus();
+            window.print();
+          } catch(e) {
+            console.error(e);
+          }
+          setTimeout(function() {
+            try {
+              if (window.frameElement) {
+                window.parent.document.body.removeChild(window.frameElement);
+              }
+            } catch(e) {}
+          }, 2000);
+        }, 150);
+      };
+    </script>
+  </body>
+</html>`);
+      doc.close();
+      resolve(true);
+    } catch (err) {
+      console.warn('Iframe print error, falling back to window.print():', err);
+      window.print();
+      resolve(false);
+    }
+  });
+};
+
 // Tauri ESC/POS Execution Engine
 export const executeEscPosPrint = async (
   receipt: FormattedReceipt,
@@ -902,7 +1019,7 @@ export const executeEscPosPrint = async (
 
   // Fallback / Standard Web Browser Thermal Print
   try {
-    window.print();
+    await printThermalReceiptBrowser(receipt.text, config.paperWidth, 'Comprovante CellMaster');
     return {
       success: true,
       message: 'Comprovante térmico enviado para o spooler de impressão.',
