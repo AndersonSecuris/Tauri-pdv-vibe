@@ -21,6 +21,9 @@ import {
   Trophy,
   Layers,
   Wrench,
+  Trash2,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 
 interface ClientHistoryViewProps {
@@ -28,6 +31,7 @@ interface ClientHistoryViewProps {
   orders: OrdemDeServico[];
   onOpenOS: (os: OrdemDeServico) => void;
   onNewOSForClient: (client: Cliente) => void;
+  onDeleteClient?: (clientId: string) => void;
   theme?: AppTheme;
 }
 
@@ -36,12 +40,14 @@ export const ClientHistoryView: React.FC<ClientHistoryViewProps> = ({
   orders,
   onOpenOS,
   onNewOSForClient,
+  onDeleteClient = () => {},
   theme = 'black-yellow',
 }) => {
   const isDark = theme === 'black-yellow' || theme === 'dark';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
+  const [clientToDelete, setClientToDelete] = useState<Cliente | null>(null);
 
   // Filter clients
   const filteredClients = clients.filter(
@@ -207,13 +213,29 @@ export const ClientHistoryView: React.FC<ClientHistoryViewProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={() => onNewOSForClient(selectedClient)}
-                className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-neutral-950 rounded-lg text-xs font-black flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.25)] transition-all active:scale-95"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Nova O.S. Para Este Cliente</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClientToDelete(selectedClient)}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors flex items-center gap-1.5 ${
+                    isDark
+                      ? 'border-neutral-800 hover:border-rose-500/50 text-neutral-400 hover:text-rose-400 bg-neutral-900/40'
+                      : 'border-neutral-200 hover:border-rose-300 text-neutral-600 hover:text-rose-600 bg-white'
+                  }`}
+                  title="Apagar este cliente cadastrado"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Excluir Cliente</span>
+                </button>
+
+                <button
+                  onClick={() => onNewOSForClient(selectedClient)}
+                  className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-neutral-950 rounded-lg text-xs font-black flex items-center gap-2 shadow-[0_0_15px_rgba(250,204,21,0.25)] transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Nova O.S. Para Este Cliente</span>
+                </button>
+              </div>
             </div>
 
             {selectedClient.address && (
@@ -415,6 +437,69 @@ export const ClientHistoryView: React.FC<ClientHistoryViewProps> = ({
       ) : (
         <div className="flex-1 flex items-center justify-center p-8 text-neutral-400 text-xs">
           Selecione um cliente ao lado para ver o histórico de consertos.
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL: DELETE CLIENT */}
+      {clientToDelete && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in-50">
+          <div
+            className={`w-full max-w-md rounded-2xl border p-5 md:p-6 space-y-4 shadow-2xl ${
+              isDark ? 'bg-neutral-900 border-rose-500/40 text-neutral-100' : 'bg-white border-rose-300 text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-3 text-rose-500">
+              <div className="p-2.5 rounded-xl bg-rose-500/10">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-rose-400">Excluir Cadastro do Cliente?</h3>
+                <p className="text-xs text-neutral-400">{clientToDelete.name}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-300 leading-relaxed">
+              <p>
+                Deseja realmente apagar o cadastro de <strong>{clientToDelete.name}</strong> (Tel: {clientToDelete.phone})?
+              </p>
+              {orders.filter(
+                (o) =>
+                  o.client.id === clientToDelete.id ||
+                  o.client.phone === clientToDelete.phone ||
+                  (o.client.cpf && clientToDelete.cpf && o.client.cpf === clientToDelete.cpf)
+              ).length > 0 && (
+                <div className={`p-3 rounded-xl border text-[11px] ${
+                  isDark ? 'bg-amber-950/20 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'
+                }`}>
+                  ⚠️ <strong>Aviso:</strong> Este cliente possui ordens de serviço registradas. As ordens de serviço anteriores continuarão preservadas com os dados do cliente para garantir o histórico de manutenções e receitas da loja.
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setClientToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteClient(clientToDelete.id);
+                  setClientToDelete(null);
+                  // select another client if available
+                  const remaining = clients.filter((c) => c.id !== clientToDelete.id);
+                  setSelectedClientId(remaining[0]?.id || '');
+                }}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirmar Exclusão</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

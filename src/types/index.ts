@@ -102,6 +102,7 @@ export interface ItemPDV {
   stock: number;
   minStock: number;
   unit: string;
+  controlStock?: boolean; // Permite ativar ou desativar o controle de estoque por produto
 }
 
 export interface ItemVenda {
@@ -294,3 +295,33 @@ export interface OSConfigOptions {
   colors: string[];
   technicians: string[];
 }
+
+export interface CellMasterBackupData {
+  version: string;
+  timestamp: string;
+  systemName: string;
+  notes?: string;
+  orders: OrdemDeServico[];
+  clients: Cliente[];
+  products: ItemPDV[];
+  sales: VendaPDV[];
+  caixa?: CaixaSessao;
+  printerConfig?: ConfiguracaoImpressora;
+  osConfig?: OSConfigOptions;
+  metadata?: {
+    totalOrders: number;
+    totalClients: number;
+    totalProducts: number;
+    totalSales: number;
+    backupSource?: string;
+  };
+}
+
+export interface BackupSnapshotItem {
+  id: string;
+  name: string;
+  createdAt: string;
+  data: CellMasterBackupData;
+  sizeBytes?: number;
+}
+

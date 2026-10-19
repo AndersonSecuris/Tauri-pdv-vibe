@@ -45,6 +45,12 @@ if %errorlevel% neq 0 (
 )
 
 echo.
+echo [Sincronização] Sincronizando dependências Rust Crates com npm...
+if exist "src-tauri\Cargo.lock" (
+    call cargo update --manifest-path src-tauri\Cargo.toml
+)
+
+echo.
 echo [4/4] Compilando instaladores Windows nativos via Tauri (NSIS e MSI)...
 call npx tauri build --target x86_64-pc-windows-msvc
 if %errorlevel% neq 0 (

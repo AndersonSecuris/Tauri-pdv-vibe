@@ -23,7 +23,17 @@ import {
   getStoredOSConfig,
   saveStoredOSConfig,
   resetStoredOSConfig,
+  getStoredSales,
+  saveStoredSales,
+  saveStoredSnapshots,
+  INITIAL_CAIXA,
+  INITIAL_PRINTER_CONFIG,
+  createBackupPayload,
+  addStoredSnapshot,
 } from './services/storage';
+import { AnalyticsView } from './components/AnalyticsView';
+import { BackupView } from './components/BackupView';
+import { SelectiveResetOptions } from './components/ResetDatabaseModal';
 import {
   generateOSCustomerReceipt,
   generateOSTechReceipt,
@@ -50,6 +60,7 @@ export default function App() {
 
   // Central Data States
   const [orders, setOrders] = useState<OrdemDeServico[]>(getStoredOrders);
+  const [sales, setSales] = useState<VendaPDV[]>(getStoredSales);
   const [clients, setClients] = useState<Cliente[]>(getStoredClients);
   const [products, setProducts] = useState<ItemPDV[]>(getStoredProducts);
   const [caixa, setCaixa] = useState<CaixaSessao>(getStoredCaixa);
@@ -58,7 +69,7 @@ export default function App() {
 
   // Active Main Navigation Tab
   const [currentTab, setCurrentTab] = useState<
-    'OS_LIST' | 'PDV' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG'
+    'OS_LIST' | 'PDV' | 'ANALYTICS' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG' | 'BACKUP'
   >('OS_LIST');
 
   // Modals & Panels
@@ -92,6 +103,10 @@ export default function App() {
   }, [products]);
 
   useEffect(() => {
+    saveStoredSales(sales);
+  }, [sales]);
+
+  useEffect(() => {
     saveStoredCaixa(caixa);
   }, [caixa]);
 
@@ -112,6 +127,141 @@ export default function App() {
   const handleResetOSConfig = () => {
     const defaults = resetStoredOSConfig();
     setOSConfig(defaults);
+  };
+
+  // Handler: Restore Backup Data (Full Replace or Incremental Merge)
+  const handleRestoreBackup = (data: {
+    orders: OrdemDeServico[];
+    clients: Cliente[];
+    products: ItemPDV[];
+    sales: VendaPDV[];
+    caixa?: CaixaSessao;
+    printerConfig?: ConfiguracaoImpressora;
+    osConfig?: OSConfigOptions;
+    mode: 'REPLACE' | 'MERGE';
+  }) => {
+    setOrders(data.orders);
+    setClients(data.clients);
+    setProducts(data.products);
+    setSales(data.sales);
+    if (data.caixa) setCaixa(data.caixa);
+    if (data.printerConfig) setPrinterConfig(data.printerConfig);
+    if (data.osConfig) setOSConfig(data.osConfig);
+  };
+
+  // Handler: Delete Work Order Individually
+  const handleDeleteOS = (orderId: string) => {
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    if (activeOSForDetails?.id === orderId) {
+      setActiveOSForDetails(null);
+    }
+  };
+
+  // Handler: Delete Client
+  const handleDeleteClient = (clientId: string) => {
+    setClients((prev) => prev.filter((c) => c.id !== clientId));
+  };
+
+  // Handler: Delete Sale (and restore stock for tracked items)
+  const handleDeleteSale = (saleId: string) => {
+    const saleToDelete = sales.find((s) => s.id === saleId);
+    if (saleToDelete && saleToDelete.status === 'CONCLUIDA') {
+      setProducts((prev) => {
+        const restored = prev.map((prod) => {
+          const cartItem = saleToDelete.items.find((i) => i.product.id === prod.id);
+          const isControlled = prod.controlStock !== false && prod.unit !== 'SV';
+          if (cartItem && isControlled) {
+            return {
+              ...prod,
+              stock: prod.stock + cartItem.quantity,
+            };
+          }
+          return prod;
+        });
+        saveStoredProducts(restored);
+        return restored;
+      });
+    }
+    setSales((prev) => prev.filter((s) => s.id !== saleId));
+  };
+
+  // Handler: Update Sale Values
+  const handleUpdateSale = (updatedSale: VendaPDV) => {
+    setSales((prev) => prev.map((s) => (s.id === updatedSale.id ? updatedSale : s)));
+  };
+
+  // Handler: Save or Update Product (with stock control options)
+  const handleSaveProduct = (product: ItemPDV) => {
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.id === product.id);
+      let updated: ItemPDV[];
+      if (exists) {
+        updated = prev.map((p) => (p.id === product.id ? product : p));
+      } else {
+        updated = [product, ...prev];
+      }
+      saveStoredProducts(updated);
+      return updated;
+    });
+  };
+
+  // Handler: Delete Product from Catalog
+  const handleDeleteProduct = (productId: string) => {
+    setProducts((prev) => {
+      const updated = prev.filter((p) => p.id !== productId);
+      saveStoredProducts(updated);
+      return updated;
+    });
+  };
+
+  // Handler: Selective Database Reset
+  const handleSelectiveReset = (opts: SelectiveResetOptions) => {
+    if (opts.createBackupFirst) {
+      const currentLive = createBackupPayload({
+        orders,
+        clients,
+        products,
+        sales,
+        caixa,
+        printerConfig,
+        osConfig,
+        notes: 'Backup de segurança gerado antes do reset seletivo',
+        source: 'pre_reset_safety',
+      });
+      addStoredSnapshot(`Segurança Pré-Reset (${new Date().toLocaleTimeString('pt-BR')})`, currentLive);
+    }
+
+    if (opts.deleteOrders) {
+      setOrders([]);
+      saveStoredOrders([]);
+    }
+    if (opts.deleteSales) {
+      setSales([]);
+      saveStoredSales([]);
+    }
+    if (opts.deleteClients) {
+      setClients([]);
+      saveStoredClients([]);
+    }
+    if (opts.deleteProducts) {
+      setProducts([]);
+      saveStoredProducts([]);
+    }
+    if (opts.resetCaixa) {
+      setCaixa(INITIAL_CAIXA);
+      saveStoredCaixa(INITIAL_CAIXA);
+    }
+    if (opts.resetOSConfig) {
+      const def = resetStoredOSConfig();
+      setOSConfig(def);
+    }
+    if (opts.resetPrinterConfig) {
+      setPrinterConfig(INITIAL_PRINTER_CONFIG);
+      saveStoredPrinterConfig(INITIAL_PRINTER_CONFIG);
+    }
+    if (opts.clearSnapshots) {
+      saveStoredSnapshots([]);
+    }
   };
 
   // Handler: Save New Work Order (Fast OS Modal)
@@ -191,10 +341,11 @@ export default function App() {
 
   // Handler: Complete Sale from PDV
   const handleCompleteSale = (sale: VendaPDV) => {
-    // 1. Deduct products stock
+    // 1. Deduct products stock only if controlStock is enabled
     const updatedProducts = products.map((prod) => {
       const cartItem = sale.items.find((i) => i.product.id === prod.id);
-      if (cartItem && prod.unit !== 'SV') {
+      const isControlled = prod.controlStock !== false && prod.unit !== 'SV';
+      if (cartItem && isControlled) {
         return {
           ...prod,
           stock: Math.max(0, prod.stock - cartItem.quantity),
@@ -237,9 +388,10 @@ export default function App() {
         ...caixa.movements,
       ],
     };
-    setCaixa(updatedCaixa);
+    // 3. Save sale to sales history
+    setSales((prev) => [sale, ...prev]);
 
-    // 3. Generate ESC/POS Thermal Sale Ticket
+    // 4. Generate ESC/POS Thermal Sale Ticket
     const receipt = generateSaleReceipt(sale, printerConfig);
     setReceiptPreview({
       receipt,
@@ -328,6 +480,7 @@ export default function App() {
               setIsTrackerOpen(true);
             }}
             onOpenOSConfig={() => setCurrentTab('OS_CONFIG')}
+            onDeleteOS={handleDeleteOS}
           />
         )}
 
@@ -335,10 +488,29 @@ export default function App() {
           <PDVView
             products={products}
             clients={clients}
+            sales={sales}
             printerConfig={printerConfig}
             theme={theme}
             onCompleteSale={handleCompleteSale}
+            onDeleteSale={handleDeleteSale}
+            onUpdateSale={handleUpdateSale}
+            onSaveProduct={handleSaveProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onPrintReceipt={(s) =>
+              setReceiptPreview({
+                receipt: generateSaleReceipt(s, printerConfig),
+                title: `Cupom de Venda ${s.code}`,
+              })
+            }
             onOpenCaixa={() => setIsCaixaModalOpen(true)}
+          />
+        )}
+
+        {currentTab === 'ANALYTICS' && (
+          <AnalyticsView
+            orders={orders}
+            sales={sales}
+            theme={theme}
           />
         )}
 
@@ -352,6 +524,7 @@ export default function App() {
               setPreselectedClient(client);
               setIsFastOSOpen(true);
             }}
+            onDeleteClient={handleDeleteClient}
           />
         )}
 
@@ -362,6 +535,21 @@ export default function App() {
             onResetDefaults={handleResetOSConfig}
             theme={theme}
             onClose={() => setCurrentTab('OS_LIST')}
+          />
+        )}
+
+        {currentTab === 'BACKUP' && (
+          <BackupView
+            orders={orders}
+            clients={clients}
+            products={products}
+            sales={sales}
+            caixa={caixa}
+            printerConfig={printerConfig}
+            osConfig={osConfig}
+            theme={theme}
+            onRestoreBackup={handleRestoreBackup}
+            onSelectiveReset={handleSelectiveReset}
           />
         )}
       </main>
@@ -394,6 +582,7 @@ export default function App() {
           theme={theme}
           onUpdate={handleUpdateOS}
           onPrint={(type) => handlePrintOS(activeOSForDetails, type)}
+          onDelete={handleDeleteOS}
           onClose={() => setActiveOSForDetails(null)}
         />
       )}

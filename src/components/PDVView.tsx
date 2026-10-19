@@ -27,13 +27,26 @@ import {
   Wrench,
   Layers,
   Sparkles,
+  History,
+  Edit2,
+  Infinity,
+  Boxes,
 } from 'lucide-react';
+import { SalesHistoryModal } from './SalesHistoryModal';
+import { ProductModal } from './ProductModal';
+import { ProductManagerModal } from './ProductManagerModal';
 
 interface PDVViewProps {
   products: ItemPDV[];
   clients: Cliente[];
+  sales?: VendaPDV[];
   printerConfig: ConfiguracaoImpressora;
   onCompleteSale: (sale: VendaPDV) => void;
+  onDeleteSale?: (saleId: string) => void;
+  onUpdateSale?: (updatedSale: VendaPDV) => void;
+  onPrintReceipt?: (sale: VendaPDV) => void;
+  onSaveProduct?: (product: ItemPDV) => void;
+  onDeleteProduct?: (productId: string) => void;
   onOpenCaixa: () => void;
   theme?: AppTheme;
 }
@@ -51,12 +64,24 @@ const CATEGORIES = [
 export const PDVView: React.FC<PDVViewProps> = ({
   products,
   clients,
+  sales = [],
   printerConfig,
   onCompleteSale,
+  onDeleteSale = () => {},
+  onUpdateSale = () => {},
+  onPrintReceipt = () => {},
+  onSaveProduct = () => {},
+  onDeleteProduct = () => {},
   onOpenCaixa,
   theme = 'black-yellow',
 }) => {
   const isDark = theme === 'black-yellow' || theme === 'dark';
+
+  const [isSalesHistoryOpen, setIsSalesHistoryOpen] = useState(false);
+  const [isProductManagerOpen, setIsProductManagerOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<ItemPDV | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ItemPDV | null>(null);
 
   const [cart, setCart] = useState<ItemVenda[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -86,12 +111,21 @@ export const PDVView: React.FC<PDVViewProps> = ({
     return matchesCat && matchesQuery;
   });
 
-  // Add Product to Cart
+  // Add Product to Cart with stock control awareness
   const handleAddToCart = (product: ItemPDV) => {
+    const isControlled = product.controlStock !== false && product.unit !== 'SV';
     const existingIndex = cart.findIndex((item) => item.product.id === product.id);
+
     if (existingIndex >= 0) {
+      const currentQty = cart[existingIndex].quantity;
+      if (isControlled && currentQty + 1 > product.stock) {
+        alert(
+          `Atenção: Saldo de estoque insuficiente para "${product.name}".\nDisponível: ${product.stock} un.`
+        );
+        return;
+      }
       const updated = [...cart];
-      const newQty = updated[existingIndex].quantity + 1;
+      const newQty = currentQty + 1;
       updated[existingIndex] = {
         ...updated[existingIndex],
         quantity: newQty,
@@ -99,6 +133,12 @@ export const PDVView: React.FC<PDVViewProps> = ({
       };
       setCart(updated);
     } else {
+      if (isControlled && product.stock <= 0) {
+        alert(
+          `Atenção: O produto "${product.name}" está com estoque esgotado (0 un).\nCadastre nova entrada de estoque ou desative o controle de estoque nas configurações do item.`
+        );
+        return;
+      }
       setCart([
         ...cart,
         {
@@ -113,6 +153,17 @@ export const PDVView: React.FC<PDVViewProps> = ({
 
   // Adjust Quantity
   const handleUpdateQty = (productId: string, delta: number) => {
+    const targetItem = cart.find((i) => i.product.id === productId);
+    if (targetItem && delta > 0) {
+      const isControlled = targetItem.product.controlStock !== false && targetItem.product.unit !== 'SV';
+      if (isControlled && targetItem.quantity + delta > targetItem.product.stock) {
+        alert(
+          `Quantidade máxima em estoque atingida para "${targetItem.product.name}" (${targetItem.product.stock} un disponíveis).`
+        );
+        return;
+      }
+    }
+
     const updated = cart
       .map((item) => {
         if (item.product.id === productId) {
@@ -223,12 +274,12 @@ export const PDVView: React.FC<PDVViewProps> = ({
             </form>
 
             {/* Keyword Search */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-60">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filtrar por nome..."
+                placeholder="Filtrar por nome ou código..."
                 className={`w-full text-xs px-3 py-2.5 pl-8 border rounded-lg outline-none transition-colors ${
                   isDark
                     ? 'bg-[#1E1F27] border-[#2F313D] text-white placeholder-neutral-500 focus:border-yellow-400'
@@ -236,6 +287,35 @@ export const PDVView: React.FC<PDVViewProps> = ({
                 }`}
               />
               <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-3" />
+            </div>
+
+            {/* Add New Product & Manage Stock Buttons */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setProductToEdit(null);
+                  setIsProductModalOpen(true);
+                }}
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-lg text-xs font-bold text-neutral-950 bg-yellow-400 hover:bg-yellow-300 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(250,204,21,0.25)] shrink-0 active:scale-95 whitespace-nowrap"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Novo Produto</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsProductManagerOpen(true)}
+                className={`flex-1 sm:flex-initial px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 border shrink-0 active:scale-95 whitespace-nowrap ${
+                  isDark
+                    ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-750 text-neutral-200'
+                    : 'border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-800'
+                }`}
+                title="Abrir painel completo de controle de estoque e catálogo de produtos"
+              >
+                <Boxes className="w-3.5 h-3.5 text-yellow-400" />
+                <span>Estoque ({products.length})</span>
+              </button>
             </div>
           </div>
 
@@ -269,10 +349,10 @@ export const PDVView: React.FC<PDVViewProps> = ({
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
             {filteredProducts.map((prod) => (
-              <button
+              <div
                 key={prod.id}
                 onClick={() => handleAddToCart(prod)}
-                className={`text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between group h-36 active:scale-95 ${
+                className={`text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between group h-40 cursor-pointer select-none active:scale-[0.98] ${
                   isDark
                     ? 'bg-[#17181E] border-[#262732] hover:border-yellow-400/60 hover:bg-[#1E2028]'
                     : 'bg-white border-neutral-200 hover:border-neutral-400 hover:shadow-xs'
@@ -280,19 +360,64 @@ export const PDVView: React.FC<PDVViewProps> = ({
               >
                 <div>
                   <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono mb-1">
-                    <span>{prod.code}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                        prod.stock <= prod.minStock
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : isDark
-                          ? 'bg-[#252630] text-neutral-400'
-                          : 'bg-neutral-100 text-neutral-600'
-                      }`}
-                    >
-                      Estoque: {prod.stock}
-                    </span>
+                    <span className="truncate max-w-[80px]" title={prod.code}>{prod.code}</span>
+                    
+                    <div className="flex items-center gap-1.5">
+                      {/* Stock badge: handles controlStock true vs false */}
+                      {prod.controlStock === false ? (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1"
+                          title="Produto com estoque ilimitado (sem controle de estoque)"
+                        >
+                          <Infinity className="w-3 h-3" />
+                          <span>Livre</span>
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-mono ${
+                            prod.stock === 0
+                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              : prod.stock <= prod.minStock
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : isDark
+                              ? 'bg-[#252630] text-neutral-400'
+                              : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                          title={`Estoque mínimo para alerta: ${prod.minStock}`}
+                        >
+                          {prod.stock === 0 ? 'Esgotado' : `Est: ${prod.stock}`}
+                        </span>
+                      )}
+
+                      {/* Quick Edit & Delete Action Buttons */}
+                      <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProductToEdit(prod);
+                            setIsProductModalOpen(true);
+                          }}
+                          className={`p-1 rounded hover:bg-yellow-400/20 text-neutral-400 hover:text-yellow-400 transition-colors`}
+                          title="Editar dados e controle de estoque deste produto"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProductToDelete(prod);
+                          }}
+                          className={`p-1 rounded hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-colors`}
+                          title="Excluir este produto do catálogo"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
                   <div
                     className={`text-xs font-bold line-clamp-2 transition-colors ${
                       isDark ? 'text-white group-hover:text-yellow-400' : 'text-neutral-900'
@@ -319,7 +444,7 @@ export const PDVView: React.FC<PDVViewProps> = ({
                     <span>Inserir</span>
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -345,13 +470,27 @@ export const PDVView: React.FC<PDVViewProps> = ({
               Carrinho ({cart.reduce((sum, i) => sum + i.quantity, 0)})
             </h2>
           </div>
-          <button
-            onClick={onOpenCaixa}
-            className="text-xs text-yellow-400 hover:underline font-bold flex items-center gap-1"
-          >
-            <Coins className="w-3.5 h-3.5" />
-            <span>Gestão de Caixa</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSalesHistoryOpen(true)}
+              className="text-xs text-yellow-400 hover:text-yellow-300 hover:underline font-bold flex items-center gap-1 transition-colors"
+              title="Ver histórico de vendas realizadas, alterar valores ou apagar vendas"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Vendas ({sales.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenCaixa}
+              className={`text-xs hover:underline font-bold flex items-center gap-1 transition-colors ${
+                isDark ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              <Coins className="w-3.5 h-3.5" />
+              <span>Caixa</span>
+            </button>
+          </div>
         </div>
 
         {/* Customer Select / Anonymous */}
@@ -401,8 +540,17 @@ export const PDVView: React.FC<PDVViewProps> = ({
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-bold truncate text-white">{item.product.name}</div>
-                  <div className="text-[11px] text-yellow-400 font-mono">
-                    {formatBRL(item.unitPrice)} un.
+                  <div className="text-[11px] text-yellow-400 font-mono flex items-center gap-1.5">
+                    <span>{formatBRL(item.unitPrice)} un.</span>
+                    {item.product.controlStock === false ? (
+                      <span className="text-[10px] text-cyan-400 flex items-center gap-0.5">
+                        <Infinity className="w-2.5 h-2.5" /> Livre
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-neutral-400 font-sans">
+                        (Est: {item.product.stock})
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -694,6 +842,132 @@ export const PDVView: React.FC<PDVViewProps> = ({
               >
                 <CheckCircle className="w-4 h-4 stroke-[3]" />
                 <span>Confirmar & Emitir Cupom</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sales History, Edit Values and Delete Modal */}
+      <SalesHistoryModal
+        isOpen={isSalesHistoryOpen}
+        onClose={() => setIsSalesHistoryOpen(false)}
+        sales={sales}
+        printerConfig={printerConfig}
+        onDeleteSale={onDeleteSale}
+        onUpdateSale={onUpdateSale}
+        onPrintReceipt={onPrintReceipt}
+        theme={theme}
+      />
+
+      {/* Product Add / Edit Modal */}
+      <ProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => {
+          setIsProductModalOpen(false);
+          setProductToEdit(null);
+        }}
+        productToEdit={productToEdit}
+        onSaveProduct={(p) => {
+          onSaveProduct(p);
+          setIsProductModalOpen(false);
+          setProductToEdit(null);
+        }}
+        theme={theme}
+      />
+
+      {/* Product Manager & Stock Control Center */}
+      <ProductManagerModal
+        isOpen={isProductManagerOpen}
+        onClose={() => setIsProductManagerOpen(false)}
+        products={products}
+        onOpenNewProduct={() => {
+          setProductToEdit(null);
+          setIsProductModalOpen(true);
+        }}
+        onEditProduct={(p) => {
+          setProductToEdit(p);
+          setIsProductModalOpen(true);
+        }}
+        onDeleteProduct={(p) => {
+          setProductToDelete(p);
+        }}
+        onToggleControlStock={(p) => {
+          const newControlStock = p.controlStock === false ? true : false;
+          onSaveProduct({
+            ...p,
+            controlStock: newControlStock,
+            stock: newControlStock && p.stock === 0 ? 10 : p.stock,
+          });
+        }}
+        onUpdateStockQuantity={(p, delta) => {
+          onSaveProduct({
+            ...p,
+            stock: Math.max(0, p.stock + delta),
+          });
+        }}
+        theme={theme}
+      />
+
+      {/* Product Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in-50">
+          <div
+            className={`w-full max-w-md rounded-2xl border p-5 md:p-6 space-y-4 shadow-2xl ${
+              isDark ? 'bg-neutral-900 border-rose-500/40 text-neutral-100' : 'bg-white border-rose-300 text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-3 text-rose-500">
+              <div className="p-2.5 rounded-xl bg-rose-500/10">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-rose-400">Excluir Produto do Catálogo?</h3>
+                <p className="text-xs text-neutral-400 font-mono">{productToDelete.code}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-300 leading-relaxed">
+              <p>
+                Tem certeza que deseja apagar o produto <strong>{productToDelete.name}</strong>?
+              </p>
+              <div
+                className={`p-3 rounded-xl border text-[11px] font-mono space-y-1 ${
+                  isDark ? 'bg-neutral-950/80 border-neutral-800 text-neutral-300' : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <div>Código: {productToDelete.code} (EAN: {productToDelete.barcode})</div>
+                <div>Preço: <span className="text-yellow-400 font-bold">{formatBRL(productToDelete.price)}</span></div>
+                <div>
+                  Controle de Estoque:{' '}
+                  <span className={productToDelete.controlStock === false ? 'text-cyan-400' : 'text-neutral-200'}>
+                    {productToDelete.controlStock === false ? 'Desativado (Ilimitado)' : `Ativado (${productToDelete.stock} un)`}
+                  </span>
+                </div>
+              </div>
+              <p className="text-rose-400 font-semibold text-[11px]">
+                ⚠️ Esta ação removerá o produto da vitrine e do leitor de código de barras.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteProduct(productToDelete.id);
+                  setProductToDelete(null);
+                }}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirmar Exclusão</span>
               </button>
             </div>
           </div>

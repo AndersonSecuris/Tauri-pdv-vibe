@@ -39,6 +39,7 @@ interface OSDetailsModalProps {
   theme?: AppTheme;
   onUpdate: (updatedOS: OrdemDeServico) => void;
   onPrint: (type: 'CUSTOMER_RECEIPT' | 'TECH_RECEIPT' | 'WORKBENCH_STICKER') => void;
+  onDelete?: (orderId: string) => void;
   onClose: () => void;
 }
 
@@ -114,6 +115,7 @@ export const OSDetailsModal: React.FC<OSDetailsModalProps> = ({
   theme = 'black-yellow',
   onUpdate,
   onPrint,
+  onDelete,
   onClose,
 }) => {
   const isDark = theme === 'black-yellow' || theme === 'dark';
@@ -127,6 +129,7 @@ export const OSDetailsModal: React.FC<OSDetailsModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState(os.paymentStatus);
   const [paymentMethod, setPaymentMethod] = useState(os.paymentMethod || 'PIX');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // New Item inputs
   const [newItemDesc, setNewItemDesc] = useState('');
@@ -990,6 +993,22 @@ export const OSDetailsModal: React.FC<OSDetailsModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition-colors flex items-center gap-1.5 ${
+                  isDark
+                    ? 'border-neutral-800 text-neutral-400 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-950/20'
+                    : 'border-neutral-300 text-neutral-600 hover:text-rose-600 hover:bg-rose-50'
+                }`}
+                title="Apagar esta O.S. permanentemente"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                <span>Excluir O.S.</span>
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
@@ -1006,6 +1025,65 @@ export const OSDetailsModal: React.FC<OSDetailsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* CONFIRMATION MODAL: DELETE WORK ORDER */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in-50">
+          <div
+            className={`w-full max-w-md rounded-2xl border p-5 md:p-6 space-y-4 shadow-2xl ${
+              isDark ? 'bg-neutral-900 border-rose-500/40 text-neutral-100' : 'bg-white border-rose-300 text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-3 text-rose-500">
+              <div className="p-2.5 rounded-xl bg-rose-500/10">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-rose-400">Apagar Ordem de Serviço?</h3>
+                <p className="text-xs text-neutral-400 font-mono">{os.id}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-300 leading-relaxed">
+              <p>
+                Tem certeza que deseja apagar individualmente a <strong>{os.id}</strong>?
+              </p>
+              <div className={`p-3 rounded-xl border text-[11px] font-mono space-y-1 ${
+                isDark ? 'bg-neutral-950/80 border-neutral-800 text-neutral-300' : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+              }`}>
+                <div>Cliente: <strong className="text-white">{os.client.name}</strong></div>
+                <div>Aparelho: {os.device.brand} {os.device.model} ({os.device.color})</div>
+                <div>Total: <span className="text-yellow-400 font-bold">{formatBRL(totalAmount)}</span> ({os.status})</div>
+              </div>
+              <p className="text-rose-400 font-semibold text-[11px] pt-1">
+                ⚠️ Esta ação excluirá a O.S. e todo o histórico permanentemente.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDelete) onDelete(os.id);
+                  setShowDeleteConfirm(false);
+                  onClose();
+                }}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirmar Exclusão</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

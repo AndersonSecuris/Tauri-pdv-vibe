@@ -10,12 +10,14 @@ import {
   Sparkles,
   Smartphone,
   SlidersHorizontal,
+  BarChart3,
+  Database,
 } from 'lucide-react';
 import { AppTheme } from '../types';
 
 interface TopNavProps {
-  currentTab: 'OS_LIST' | 'PDV' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG';
-  onChangeTab: (tab: 'OS_LIST' | 'PDV' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG') => void;
+  currentTab: 'OS_LIST' | 'PDV' | 'ANALYTICS' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG' | 'BACKUP';
+  onChangeTab: (tab: 'OS_LIST' | 'PDV' | 'ANALYTICS' | 'CLIENTS' | 'TRACKER' | 'PRINTER_SETTINGS' | 'OS_CONFIG' | 'BACKUP') => void;
   onOpenFastOS: () => void;
   ordersCount: number;
   theme: AppTheme;
@@ -108,6 +110,22 @@ export const TopNav: React.FC<TopNavProps> = ({
         </button>
 
         <button
+          onClick={() => onChangeTab('ANALYTICS')}
+          className={`transition-all flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+            currentTab === 'ANALYTICS'
+              ? isDark
+                ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30 font-semibold shadow-xs'
+                : 'bg-neutral-900 text-white border-neutral-900 font-semibold'
+              : isDark
+              ? 'text-neutral-400 hover:text-white border-transparent hover:bg-neutral-800/60'
+              : 'text-neutral-600 hover:text-neutral-900 border-transparent hover:bg-neutral-100'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Gráficos & Métricas</span>
+        </button>
+
+        <button
           onClick={() => onChangeTab('CLIENTS')}
           className={`transition-all flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
             currentTab === 'CLIENTS'
@@ -170,6 +188,23 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
           <span>Opções de O.S.</span>
+        </button>
+
+        <button
+          onClick={() => onChangeTab('BACKUP')}
+          title="Fazer backup completo ou recuperar dados do sistema"
+          className={`transition-all flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+            currentTab === 'BACKUP'
+              ? isDark
+                ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30 font-semibold shadow-xs'
+                : 'bg-neutral-900 text-white border-neutral-900 font-semibold'
+              : isDark
+              ? 'text-neutral-400 hover:text-white border-transparent hover:bg-neutral-800/60'
+              : 'text-neutral-600 hover:text-neutral-900 border-transparent hover:bg-neutral-100'
+          }`}
+        >
+          <Database className="w-3.5 h-3.5" />
+          <span>Backup & Dados</span>
         </button>
       </nav>
 

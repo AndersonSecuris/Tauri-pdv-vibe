@@ -36,6 +36,8 @@ import {
   VolumeX,
   SlidersHorizontal,
   FileText,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface OSListViewProps {
@@ -46,6 +48,7 @@ interface OSListViewProps {
   onQuickPrint: (os: OrdemDeServico, type: 'CUSTOMER_RECEIPT' | 'TECH_RECEIPT' | 'WORKBENCH_STICKER') => void;
   onOpenTracker: (initialSearch?: string) => void;
   onOpenOSConfig?: () => void;
+  onDeleteOS?: (orderId: string) => void;
   theme?: AppTheme;
 }
 
@@ -66,6 +69,7 @@ export const OSListView: React.FC<OSListViewProps> = ({
   onQuickPrint,
   onOpenTracker,
   onOpenOSConfig,
+  onDeleteOS = () => {},
   theme = 'black-yellow',
 }) => {
   const isDark = theme === 'black-yellow' || theme === 'dark';
@@ -73,6 +77,7 @@ export const OSListView: React.FC<OSListViewProps> = ({
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<OrdemDeServico | null>(null);
 
   // Count summaries
   const pendingApprovalCount = orders.filter((o) => o.status === 'AGUARDANDO_APROVACAO').length;
@@ -629,6 +634,20 @@ export const OSListView: React.FC<OSListViewProps> = ({
                           >
                             <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
                           </button>
+
+                          {/* 5. Delete OS Individual Button */}
+                          <button
+                            type="button"
+                            onClick={() => setOrderToDelete(os)}
+                            title="Apagar esta Ordem de Serviço individualmente"
+                            className={`p-2 rounded-lg border transition-all ${
+                              isDark
+                                ? 'bg-[#1C1D25] border-[#2C2E3C] text-neutral-400 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-950/20'
+                                : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-rose-600 hover:bg-rose-50'
+                            }`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -639,6 +658,65 @@ export const OSListView: React.FC<OSListViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* CONFIRMATION MODAL: DELETE WORK ORDER */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in-50">
+          <div
+            className={`w-full max-w-md rounded-2xl border p-5 md:p-6 space-y-4 shadow-2xl ${
+              isDark ? 'bg-neutral-900 border-rose-500/40 text-neutral-100' : 'bg-white border-rose-300 text-neutral-900'
+            }`}
+          >
+            <div className="flex items-center gap-3 text-rose-500">
+              <div className="p-2.5 rounded-xl bg-rose-500/10">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-rose-400">Apagar Ordem de Serviço?</h3>
+                <p className="text-xs text-neutral-400 font-mono">{orderToDelete.id}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-300 leading-relaxed">
+              <p>
+                Tem certeza que deseja apagar permanentemente a Ordem de Serviço <strong>{orderToDelete.id}</strong>?
+              </p>
+              <div className={`p-3 rounded-xl border text-[11px] font-mono space-y-1 ${
+                isDark ? 'bg-neutral-950/80 border-neutral-800 text-neutral-300' : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+              }`}>
+                <div>Cliente: <strong className="text-white">{orderToDelete.client.name}</strong></div>
+                <div>Aparelho: {orderToDelete.device.brand} {orderToDelete.device.model} ({orderToDelete.device.color})</div>
+                <div>Defeito: {orderToDelete.reportedDefect}</div>
+                <div>Valor: <span className="text-yellow-400 font-bold">{formatBRL(orderToDelete.totalAmount)}</span> ({orderToDelete.status})</div>
+              </div>
+              <p className="text-rose-400 font-semibold text-[11px] pt-1">
+                ⚠️ Esta ação excluirá a O.S. e todo o seu histórico de peças, serviços e eventos.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteOS(orderToDelete.id);
+                  setOrderToDelete(null);
+                }}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirmar Exclusão</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -25,8 +25,16 @@ Se você estiver em uma máquina com Windows:
 
 3. **Ou executar manualmente via terminal**:
    ```bash
+   # 1. Instalar dependências JavaScript
    npm install --legacy-peer-deps
+
+   # 2. Sincronizar pacotes npm com as crates Rust (evita divergência de versões)
+   cargo update --manifest-path src-tauri/Cargo.toml
+
+   # 3. Compilar frontend Vite
    npm run build
+
+   # 4. Compilar instaladores Windows nativos
    npx tauri build
    ```
 

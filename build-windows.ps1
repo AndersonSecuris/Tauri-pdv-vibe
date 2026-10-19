@@ -25,6 +25,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+if (Test-Path "src-tauri/Cargo.lock") {
+    Write-Host "[Sincronização] Sincronizando dependências Rust Crates com npm..." -ForegroundColor Cyan
+    cargo update --manifest-path src-tauri/Cargo.toml
+}
+
 Write-Host "[2/3] Compilando executáveis e instaladores com Tauri CLI..." -ForegroundColor Green
 npx tauri build
 
