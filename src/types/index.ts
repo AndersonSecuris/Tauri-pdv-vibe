@@ -166,6 +166,7 @@ export interface ConfiguracaoImpressora {
   openCashDrawerOnSale: boolean;
   printWorkbenchSticker: boolean;
   copiesCount: number;
+  printDensity?: 'NORMAL' | 'ESCURO' | 'SUPER_ESCURO'; // Controle de escurecimento e contraste térmico
   
   // Dados do Cabeçalho
   storeName: string;

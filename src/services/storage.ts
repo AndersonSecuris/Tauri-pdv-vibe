@@ -2227,6 +2227,7 @@ export const INITIAL_PRINTER_CONFIG: ConfiguracaoImpressora = {
   openCashDrawerOnSale: true,
   printWorkbenchSticker: true,
   copiesCount: 1,
+  printDensity: 'ESCURO',
   storeName: 'CELLMASTER ASSISTÊNCIA TÉCNICA',
   storeCnpj: '48.912.345/0001-90',
   storePhone: '(11) 98765-0000 / (11) 3200-4000',

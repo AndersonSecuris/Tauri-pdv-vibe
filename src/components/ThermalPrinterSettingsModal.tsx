@@ -1066,6 +1066,67 @@ export const ThermalPrinterSettingsModal: React.FC<ThermalPrinterSettingsModalPr
                   </div>
                 </div>
 
+                {/* Print Density / Darkness Setting */}
+                <div
+                  className={`border rounded-xl p-4 space-y-2.5 ${
+                    isDark ? 'bg-[#17181F] border-[#292B37]' : 'border-neutral-200'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <label className="font-bold text-yellow-400 block flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Densidade & Escurecimento Térmico (Contraste):</span>
+                    </label>
+                    <span className="text-[10px] text-neutral-400 font-mono">
+                      Resolve impressões claras ou fracas
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      {
+                        id: 'NORMAL',
+                        label: 'Normal (Padrão)',
+                        desc: 'Densidade básica para impressoras novas',
+                      },
+                      {
+                        id: 'ESCURO',
+                        label: 'Escuro / Alto Contraste',
+                        desc: 'Recomendado: traços e letras pretas espessas',
+                      },
+                      {
+                        id: 'SUPER_ESCURO',
+                        label: 'Super Escuro (Máximo)',
+                        desc: 'Duplo pulso térmico / queima profunda',
+                      },
+                    ].map((item) => {
+                      const isSel = (form.printDensity || 'ESCURO') === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              printDensity: item.id as 'NORMAL' | 'ESCURO' | 'SUPER_ESCURO',
+                            })
+                          }
+                          className={`p-2.5 rounded-xl border text-center transition-all ${
+                            isSel
+                              ? 'border-yellow-400 bg-yellow-400 text-neutral-950 font-black shadow-xs'
+                              : isDark
+                              ? 'border-[#292B37] bg-[#121317] hover:bg-[#1E2029] text-neutral-300'
+                              : 'border-neutral-200 hover:bg-neutral-50 text-neutral-700'
+                          }`}
+                        >
+                          <div className="font-bold text-xs">{item.label}</div>
+                          <div className="text-[10px] opacity-80 mt-0.5">{item.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Connection Type */}
                 <div
                   className={`border rounded-xl p-4 space-y-2.5 ${

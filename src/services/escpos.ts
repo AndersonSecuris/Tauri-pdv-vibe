@@ -13,6 +13,10 @@ export const ESC_POS = {
   ALIGN_RIGHT: [0x1B, 0x61, 0x02],
   BOLD_ON: [0x1B, 0x45, 0x01],
   BOLD_OFF: [0x1B, 0x45, 0x00],
+  DOUBLE_STRIKE_ON: [0x1B, 0x47, 0x01], // ESC G 1 - Double strike for high-contrast thermal burn
+  DOUBLE_STRIKE_OFF: [0x1B, 0x47, 0x00], // ESC G 0
+  SET_HEAT_DARK: [0x1B, 0x37, 0x07, 0x80, 0x02], // ESC 7 - Higher thermal heating duration for dark text
+  SET_HEAT_SUPER_DARK: [0x1B, 0x37, 0x09, 0xB0, 0x02], // ESC 7 - Maximum thermal burn pulse
   UNDERLINE_ON: [0x1B, 0x2D, 0x01],
   UNDERLINE_OFF: [0x1B, 0x2D, 0x00],
   FONT_NORMAL: [0x1B, 0x21, 0x00],
@@ -100,9 +104,16 @@ class EscPosBuilder {
   private plainLines: string[] = [];
   private width: number;
 
-  constructor(paperWidth: '58mm' | '80mm') {
+  constructor(paperWidth: '58mm' | '80mm', density: 'NORMAL' | 'ESCURO' | 'SUPER_ESCURO' = 'ESCURO') {
     this.width = getLineWidth(paperWidth);
     this.init();
+    if (density === 'ESCURO') {
+      this.bytes.push(...ESC_POS.SET_HEAT_DARK);
+      this.bytes.push(...ESC_POS.DOUBLE_STRIKE_ON);
+    } else if (density === 'SUPER_ESCURO') {
+      this.bytes.push(...ESC_POS.SET_HEAT_SUPER_DARK);
+      this.bytes.push(...ESC_POS.DOUBLE_STRIKE_ON);
+    }
   }
 
   init() {
@@ -201,7 +212,7 @@ export const generateOSCustomerReceipt = (
   os: OrdemDeServico,
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
-  const b = new EscPosBuilder(config.paperWidth);
+  const b = new EscPosBuilder(config.paperWidth, config.printDensity || 'ESCURO');
   const opts = config.osPrintOptions || {
     showStoreHeader: true,
     showStoreCnpj: true,
@@ -438,7 +449,7 @@ export const generateOSTechReceipt = (
   os: OrdemDeServico,
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
-  const b = new EscPosBuilder(config.paperWidth);
+  const b = new EscPosBuilder(config.paperWidth, config.printDensity || 'ESCURO');
   const opts = config.techOSPrintOptions || {
     showStoreHeader: true,
     showOSNumber: true,
@@ -622,7 +633,7 @@ export const generateOSWorkbenchSticker = (
   os: OrdemDeServico,
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
-  const b = new EscPosBuilder(config.paperWidth);
+  const b = new EscPosBuilder(config.paperWidth, config.printDensity || 'ESCURO');
 
   b.alignCenter();
   b.bold(true);
@@ -680,7 +691,7 @@ export const generateSaleReceipt = (
   sale: VendaPDV,
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
-  const b = new EscPosBuilder(config.paperWidth);
+  const b = new EscPosBuilder(config.paperWidth, config.printDensity || 'ESCURO');
   const opts = config.salePrintOptions || {
     showStoreHeader: true,
     showStoreCnpj: true,
@@ -809,7 +820,7 @@ export const generateCaixaReport = (
   caixa: CaixaSessao,
   config: ConfiguracaoImpressora
 ): FormattedReceipt => {
-  const b = new EscPosBuilder(config.paperWidth);
+  const b = new EscPosBuilder(config.paperWidth, config.printDensity || 'ESCURO');
 
   b.alignCenter();
   b.bold(true);
@@ -861,11 +872,12 @@ export const generateCaixaReport = (
   return b.build(config.paperWidth);
 };
 
-// Browser isolated iframe printing utility (Prevents double sheets and repetition)
+// Browser isolated iframe printing utility (Prevents double sheets, repetition and light/faint characters)
 export const printThermalReceiptBrowser = (
   text: string,
   paperWidth: '58mm' | '80mm' = '80mm',
-  title = 'Comprovante CellMaster'
+  title = 'Comprovante CellMaster',
+  density: 'NORMAL' | 'ESCURO' | 'SUPER_ESCURO' = 'ESCURO'
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
@@ -898,6 +910,15 @@ export const printThermalReceiptBrowser = (
         return;
       }
 
+      // Density styles: Ensure deep black strokes on 203 DPI thermal print heads
+      const fontWeight = density === 'SUPER_ESCURO' ? '800' : density === 'NORMAL' ? '600' : '700';
+      const strokeStyle =
+        density === 'SUPER_ESCURO'
+          ? '-webkit-text-stroke: 0.35px #000000; text-shadow: 0 0 0.5px #000000;'
+          : density === 'ESCURO'
+          ? '-webkit-text-stroke: 0.2px #000000; text-shadow: 0 0 0.25px #000000;'
+          : '';
+
       doc.open();
       doc.write(`<!DOCTYPE html>
 <html>
@@ -919,19 +940,24 @@ export const printThermalReceiptBrowser = (
           max-width: ${maxWidth} !important;
           height: auto !important;
           overflow: visible !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
       }
       body {
         margin: 0;
-        padding: 2mm 3mm;
-        font-family: 'Courier New', Courier, monospace;
+        padding: 1.5mm 2.5mm;
+        font-family: 'Consolas', 'Courier New', 'Lucida Console', Monaco, monospace;
         font-size: ${fontSize};
+        font-weight: ${fontWeight};
         line-height: 1.25;
         color: #000000;
         background: #ffffff;
         width: ${maxWidth};
         max-width: ${maxWidth};
         box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
       }
       pre {
         margin: 0;
@@ -940,8 +966,10 @@ export const printThermalReceiptBrowser = (
         word-break: break-all;
         font-family: inherit;
         font-size: inherit;
+        font-weight: inherit;
         line-height: inherit;
         color: #000000;
+        ${strokeStyle}
       }
     </style>
   </head>
@@ -1019,7 +1047,12 @@ export const executeEscPosPrint = async (
 
   // Fallback / Standard Web Browser Thermal Print
   try {
-    await printThermalReceiptBrowser(receipt.text, config.paperWidth, 'Comprovante CellMaster');
+    await printThermalReceiptBrowser(
+      receipt.text,
+      config.paperWidth,
+      'Comprovante CellMaster',
+      config.printDensity || 'ESCURO'
+    );
     return {
       success: true,
       message: 'Comprovante térmico enviado para o spooler de impressão.',
